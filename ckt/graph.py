@@ -58,7 +58,7 @@ def build_graph_node(G, netlist, topCkt, thisInst, dev_name_prefix):
             dev.add_pin(t1)
             dev.add_pin(t2)
             if isThreeTerm(thisInst):
-                b = Pin(dev.name + '.b', dev, 'passive')
+                b = Pin(dev.name + '.b', dev, 'passive_bulk')
                 dev.add_pin(b)
         else:
             assert False
@@ -103,7 +103,7 @@ def build_graph_edge(G, netlist, topCkt, topNet, thisNet, thisInst, dev_name_pre
 
 def build_graph(netlist):
     topCkt = None
-    G = nx.DiGraph()
+    G = nx.MultiDiGraph()
     
     for ckt in netlist:
         if ckt.typeof == 'topcircuit':
@@ -123,7 +123,11 @@ def build_graph(netlist):
         if not net.isPower():
             pins = list(net.pins.values())
             for i in range(len(pins)):
+                if (pins[i].type in ['bulk', 'passive_bulk']):
+                    continue
                 for j in range(len(pins)):
+                    if (pins[j].type in ['bulk', 'passive_bulk']):
+                        continue
                     if i != j:
                         dev1, dev2 = pins[i].device, pins[j].device
                         if dev1.name != dev2.name:

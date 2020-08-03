@@ -1,6 +1,6 @@
 {
-    "netlist": "./benchmark/BUFF.sp",
-    "sym": "./benchmark/sym/BUFF.sym",
+    "netlist": "./benchmark/CTDTDSM_V3.sp",
+    "sym": "./benchmark/sym/CTDTDSM_V3.sym",
     "attention_len": 16,
     "batch_size": 32,
     "data_set": "muse",
