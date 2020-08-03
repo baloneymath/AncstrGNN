@@ -1,6 +1,7 @@
 from pyparsing import *
 import pyparsing as _p
-import netlist as nl
+
+from netlist import netlist as nl
 
 def parse_spectre(netlist_string):
     # newlines are part of the grammar, thus redifine the whitespaces without it

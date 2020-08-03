@@ -1,4 +1,6 @@
 {
+    "netlist": "./benchmark/BUFF.sp",
+    "sym": "./benchmark/sym/BUFF.sym",
     "attention_len": 16,
     "batch_size": 32,
     "data_set": "muse",
