@@ -4,6 +4,7 @@ from util.config import params_setup, logging_setup
 from netlist import netlist, parse_netlist
 from sym import parse_sym
 from ckt.graph import build_graph
+from train.train import *
 
 def init_netlist(para):
     netlist_file = open(para.netlist, 'r')
