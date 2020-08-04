@@ -88,7 +88,7 @@ def build_graph_edge(G, netlist, topCkt, topNet, thisNet, thisInst, dev_name_pre
             if thisNet.name == thisInst.pins[i]:
                 ids.append(i)
         for id in ids:
-            topNet.add_pin(topCkt.devices[dev_name_prefix].pins[id])
+            topNet.add_pin(topCkt.get_device_by_name(dev_name_prefix).pins[id])
         return
 
     # thisInst is subcircuit
@@ -116,8 +116,8 @@ def build_graph(netlist):
                 for inst in ckt.instances:
                     build_graph_edge(G, netlist, topCkt, topNet, net, inst, topCkt.name + '.' + inst.name)
     
-    for dev in topCkt.devices.values():
-        G.add_node(dev.name, device=dev)
+    for dev in topCkt.devices:
+        G.add_node(dev.idx, device=dev)
     
     for net in topCkt.nets.values():
         if not net.isPower():
@@ -130,9 +130,9 @@ def build_graph(netlist):
                         continue
                     if i != j:
                         dev1, dev2 = pins[i].device, pins[j].device
-                        if dev1.name != dev2.name:
+                        if dev1.idx != dev2.idx:
                             in_type = pins[j].type
-                            G.add_edge(dev1.name, dev2.name, in_type=in_type)
+                            G.add_edge(dev1.idx, dev2.idx, in_type=in_type)
 
     print(G.number_of_nodes(), G.number_of_edges())
     return G, topCkt

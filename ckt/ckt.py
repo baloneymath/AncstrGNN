@@ -43,6 +43,7 @@ class Device(CktObj):
         self.type = type
         self.param = param
         self.pins = []
+        self.idx = -1
     def __str__(self):
         return self.name + ' ' + self.type
     def add_pin(self, pin):
@@ -60,11 +61,16 @@ class Ckt:
     def __init__(self, name):
         self.name = name
         self.nets = {}
-        self.devices = {}
+        self.devices = []
+        self.deviceName2Id = {}
     def add_net(self, net):
         self.nets[net.name] = net
     def add_device(self, device):
-        self.devices[device.name] = device
+        device.idx = len(self.devices)
+        self.deviceName2Id[device.name] = len(self.devices)
+        self.devices.append(device)
+    def get_device_by_name(self, name):
+        return self.devices[self.deviceName2Id[name]]
     def hasPowerNet(self):
         for net in self.nets:
             if net.type in ['vss', 'vdd']:

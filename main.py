@@ -6,6 +6,11 @@ from sym import parse_sym
 from ckt.graph import build_graph
 from train.train import *
 
+import matplotlib.pyplot as plt
+import networkx as nx
+
+import dgl
+
 def init_netlist(para):
     netlist_file = open(para.netlist, 'r')
     netlist_str = netlist_file.read()
@@ -24,8 +29,11 @@ def main():
     para = params_setup()
     netlist = init_netlist(para)
     # sym = init_sym(para)
-    G, topCkt = build_graph(netlist)
+    G_nx, topCkt = build_graph(netlist)
 
+    G_gdl = dgl.DGLGraph(G_nx)
+    nx.draw_networkx(G_nx)
+    plt.show()
 
 if __name__ == "__main__":
     main()
