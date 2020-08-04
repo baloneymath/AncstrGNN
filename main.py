@@ -23,7 +23,7 @@ def main():
     para = params_setup()
     netlist = init_netlist(para)
     # sym = init_sym(para)
-    G = build_graph(netlist)
+    G, topCkt = build_graph(netlist)
 
 
 if __name__ == "__main__":
