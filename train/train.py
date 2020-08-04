@@ -1,4 +1,4 @@
-from model.GGNet import GGNet
+from model.TrashNet import TrashNet
 
 def train():
     return
