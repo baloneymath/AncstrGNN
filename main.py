@@ -31,9 +31,11 @@ def main():
     # sym = init_sym(para)
     G_nx, topCkt = build_graph(netlist)
 
-    G_gdl = dgl.DGLGraph(G_nx)
-    nx.draw_networkx(G_nx)
-    plt.show()
+    G_dgl = dgl.DGLGraph(G_nx)
+    print('Graph nodes {} edges {}'.format(G_dgl.number_of_nodes(), G_dgl.number_of_edges()))
+    # nx.draw_networkx(G_nx)
+    # plt.show()
+    G_dgl = extractFeature(G_dgl, topCkt)
 
 if __name__ == "__main__":
     main()

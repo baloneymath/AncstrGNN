@@ -134,7 +134,6 @@ def build_graph(netlist):
                             in_type = pins[j].type
                             G.add_edge(dev1.idx, dev2.idx, in_type=in_type)
 
-    print(G.number_of_nodes(), G.number_of_edges())
     return G, topCkt
     
 
