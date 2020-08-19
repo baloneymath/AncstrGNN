@@ -73,7 +73,7 @@ def build_graph_node(G, netlist, topCkt, thisInst, dev_name_prefix):
     # print(ports)
     # thisInst is subcircuit
     for inst in ckt_nl.instances:
-        build_graph_node(G, netlist, topCkt, inst, dev_name_prefix + '.' + inst.name)
+        build_graph_node(G, netlist, topCkt, inst, dev_name_prefix + '/' + inst.name)
 
 def build_graph_edge(G, netlist, topCkt, topNet, thisNet, thisInst, dev_name_prefix):
     ckt_nl = None
@@ -99,7 +99,7 @@ def build_graph_edge(G, netlist, topCkt, topNet, thisNet, thisInst, dev_name_pre
             net = ckt_nl.nets[ports[i]]
             # print(net.name)
             for inst in ckt_nl.instances:
-                build_graph_edge(G, netlist, topCkt, topNet, net, inst, dev_name_prefix + '.' + inst.name)
+                build_graph_edge(G, netlist, topCkt, topNet, net, inst, dev_name_prefix + '/' + inst.name)
 
 def build_graph(netlist):
     topCkt = None
@@ -109,12 +109,12 @@ def build_graph(netlist):
         if ckt.typeof == 'topcircuit':
             topCkt = Ckt(ckt.name)
             for inst in ckt.instances:
-                build_graph_node(G, netlist, topCkt, inst, topCkt.name + '.' + inst.name)
+                build_graph_node(G, netlist, topCkt, inst, topCkt.name + '/' + inst.name)
             for net in ckt.nets.values():
                 topNet = Net(net.name)
                 topCkt.add_net(topNet)
                 for inst in ckt.instances:
-                    build_graph_edge(G, netlist, topCkt, topNet, net, inst, topCkt.name + '.' + inst.name)
+                    build_graph_edge(G, netlist, topCkt, topNet, net, inst, topCkt.name + '/' + inst.name)
     
     for dev in topCkt.devices:
         G.add_node(dev.idx, device=dev)

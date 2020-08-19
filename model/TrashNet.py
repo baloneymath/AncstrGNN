@@ -4,24 +4,39 @@ import networkx as nx
 
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 
 import dgl
 from dgl.nn.pytorch import GraphConv, GATConv, SAGEConv
+
+class DotProductPredictor(nn.Module):
+    def forward(self, graph, h):
+        # h contains the node representations computed from the GNN above.
+        with graph.local_scope():
+            graph.ndata['h'] = h
+            graph.apply_edges(dgl.function.u_dot_v('h', 'h', 'score'))
+            return graph.edata['score']
 
 class TrashNet(nn.Module):
     def __init__(self,
                  in_feats,
                  hid_feats,
-                 out_feats):
-        super().__init__()
-        self.conv1 = SAGEConv(in_feats=in_feats, out_feats=hid_feats, aggregator_type='mean')
-        self.conv2 = SAGEConv(in_feats=hid_feats, out_feats=hid_feats, aggregator_type='mean')
-        self.conv3 = SAGEConv(in_feats=hid_feats, out_feats=out_feats, aggregator_type='mean')
+                 out_feats,
+                 dropout):
+        super(TrashNet, self).__init__()
+        self.sage = SAGEConv(in_feats=in_feats, out_feats=hid_feats, aggregator_type='mean')
+        self.dropout = dropout
+        self.pred = DotProductPredictor()
 
-    def forward(self, graph, inputs):
-        h = self.conv1(graph, inputs)
-        h = nn.LeakyReLU(h)
-        h = self.conv2(graph, h)
-        h = nn.LeakyReLU(h)
-        h = self.conv3(graph, h)
+    def forward_(self, G, inputs):
+        h = self.sage(G, inputs)
+        h = F.relu(h)
+        # h = F.dropout(h, self.dropout, training=self.training)
+        h = self.sage(G, inputs)
+        h = F.relu(h)
         return h
+
+    def forward(self, G, neg_G, inputs):
+        h = self.forward_(G, inputs)
+        return self.pred(G, h), self.pred(neg_G, h)
+

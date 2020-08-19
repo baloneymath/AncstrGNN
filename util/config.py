@@ -10,26 +10,15 @@ def params_setup():
     parser.add_argument('--sym', type=str, default='')
     parser.add_argument('--attention_len', type=int, default=16)
     parser.add_argument('--batch_size', type=int, default=32)
-    parser.add_argument('--data_set', type=str, default='muse')
-    parser.add_argument('--decay', type=int, default=0)
-    parser.add_argument('--dropout', type=float, default=0.2)
     parser.add_argument('--file_output', type=int, default=1)
-    parser.add_argument('--highway', type=int, default=0)
-    parser.add_argument('--horizon', type=int, default=3)
     parser.add_argument('--init_weight', type=float, default=0.1)
     parser.add_argument('--learning_rate', type=float, default=1e-5)
-    parser.add_argument('--max_gradient_norm', type=float, default=5.0)
     parser.add_argument('--mode', type=str, default='train')
     parser.add_argument('--out_dir', type=str, default='./out')
-    parser.add_argument('--mts', type=int, default=1)
-    parser.add_argument('--num_epochs', type=int, default=40)
-    parser.add_argument('--num_layers', type=int, default=3)
-    parser.add_argument('--num_units', type=int, default=338)
+    parser.add_argument('--num_epochs', type=float, default=0.25)
+
 
     para = parser.parse_args()
-
-    if para.data_set == "muse" or para.data_set == "lpd5":
-        para.mts = 0
 
     para.logging_level = logging.INFO
 

@@ -54,6 +54,10 @@ class Device(CktObj):
         return self.type in pmos_set
     def isMos(self):
         return self.isNmos() or self.isPmos()
+    def isCap(self):
+        return self.type in capacitor_set
+    def isRes(self):
+        return self.type in resistor_set
     def isPassive(self):
         return self.type in capacitor_set or self.type in resistor_set
 
