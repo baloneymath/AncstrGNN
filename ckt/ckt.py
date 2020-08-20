@@ -38,12 +38,13 @@ class Pin(CktObj):
         self.type = type
 
 class Device(CktObj):
-    def __init__(self, name, type, param):
+    def __init__(self, name, type, param, level):
         CktObj.__init__(self, name)
         self.type = type
         self.param = param
+        self.level = level
         self.pins = []
-        self.idx = -1
+        self.idx = -1 # idx in Ckt.devices
     def __str__(self):
         return self.name + ' ' + self.type
     def add_pin(self, pin):
@@ -61,12 +62,36 @@ class Device(CktObj):
     def isPassive(self):
         return self.type in capacitor_set or self.type in resistor_set
 
-class Ckt:
-    def __init__(self, name):
+class SubCkt(object):
+    def __init__(self, name, type, level):
         self.name = name
-        self.nets = {}
-        self.devices = []
+        self.type = type
+        self.level = level # hierarchy level
+        self.idx = -1 # idx in Ckt.subCkts
+        self.devices = [] # lowest level transistors
         self.deviceName2Id = {}
+        self.subCkts = []
+        self.subCktName2Id = {}
+    def add_device(self, device):
+        self.deviceName2Id[device.name] = len(self.devices)
+        self.devices.append(device)
+    def add_subCkt(self, subCkt):
+        self.subCktName2Id[subCkt.name] = len(self.subCkts)
+        self.subCkts.append(subCkt)
+
+
+class Ckt(object):
+    def __init__(self, name, level):
+        self.name = name
+        self.type = 'TOP'
+        self.level = level
+        self.nets = {}
+        self.devices = [] # all lowest level transistors
+        self.deviceName2Id = {}
+        self.subCkts = [] # hierarchy structured subckts
+        self.subCktName2Id = {}
+        
+
     def add_net(self, net):
         self.nets[net.name] = net
     def add_device(self, device):
@@ -85,3 +110,7 @@ class Ckt:
             if net.type in ['signal', 'clk']:
                 return True
         return False
+    def add_subCkt(self, subCkt):
+        subCkt.idx = len(self.subCkts)
+        self.subCktName2Id[subCkt.name] = len(self.subCkts)
+        self.subCkts.append(subCkt)

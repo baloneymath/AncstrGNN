@@ -25,11 +25,27 @@ def init_sym(para):
     sym = parse_sym.parse(sym_str)
     return sym
 
+def printCkt(subCkt, prefix, showDev=True):
+    print(prefix + subCkt.name + ' ' + subCkt.type + ' ' + str(subCkt.level))
+    if showDev == True:
+        for dev in subCkt.devices:
+            print('|  ' + prefix +  dev.name + ' ' + dev.type + ' ' + str(dev.level))
+    for ckt in subCkt.subCkts:
+        printCkt(ckt, '|  ' + prefix, showDev)
+
 def main():
     para = params_setup()
     netlist = init_netlist(para)
     # sym = init_sym(para)
+    
+    # print(sym)
+    # return
+
     G_nx, topCkt = build_graph(netlist)
+
+
+    # printCkt(topCkt, '|-', showDev=True)
+    # return
 
     G_dgl = dgl.DGLGraph(G_nx)
     print('Graph nodes {} edges {}'.format(G_dgl.number_of_nodes(), G_dgl.number_of_edges()))
