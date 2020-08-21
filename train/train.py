@@ -5,7 +5,7 @@ import torch.nn as nn
 from model.TrashNet import TrashNet
 
 
-def extractFeature(G, topCkt):
+def initFeature(G, topCkt):
     feat = []
     for i in range(G.number_of_nodes()):
         # print(G.in_edges(i))
@@ -26,7 +26,6 @@ def extractFeature(G, topCkt):
         f[5] = float(dev.param['w']) / 1e-6
         feat.append(f)
     G.ndata['feat'] = torch.tensor(feat)
-    return G
 
 def construct_negative_graph(G, k):
     src, dst = G.edges()

@@ -75,6 +75,7 @@ def build_graph_node(G, netlist, topCkt, subCkt, thisInst, name_prefix, level):
     # thisInst is subcircuit
     newSubCkt = SubCkt(name_prefix, thisInst.reference, level + 1)
     subCkt.add_subCkt(newSubCkt)
+    topCkt.add_subCkt_2(newSubCkt)
     for inst in ckt_nl.instances:
         build_graph_node(G, netlist, topCkt, newSubCkt, inst, name_prefix + '/' + inst.name, level + 1)
 
@@ -103,6 +104,12 @@ def build_graph_edge(G, netlist, topCkt, topNet, thisNet, thisInst, name_prefix)
             # print(net.name)
             for inst in ckt_nl.instances:
                 build_graph_edge(G, netlist, topCkt, topNet, net, inst, name_prefix + '/' + inst.name)
+
+def flattenCkt(subCkt, devs):
+    for dev in subCkt.devices:
+        devs.append(dev)
+    for ckt in subCkt.subCkts:
+        flattenCkt(ckt, devs)
 
 def build_graph(netlist):
     topCkt = None
@@ -137,6 +144,16 @@ def build_graph(netlist):
                             in_type = pins[j].type
                             G.add_edge(dev1.idx, dev2.idx, in_type=in_type)
 
+    # set devices for each subCkt
+    for subCkt in topCkt.allSubCkts:
+        allDevs = []
+        flattenCkt(subCkt, allDevs)
+        subCkt.devices = allDevs
+        for i in range(len(allDevs)):
+            dev = allDevs[i]
+            subCkt.deviceName2Id[dev.name] = i
+
+        # print(subCkt.name + ' ' + str(subCkt.level) + ' ' + str(len(subCkt.devices)))
     return G, topCkt
     
 

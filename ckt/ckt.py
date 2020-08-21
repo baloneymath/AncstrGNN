@@ -68,16 +68,19 @@ class SubCkt(object):
         self.type = type
         self.level = level # hierarchy level
         self.idx = -1 # idx in Ckt.subCkts
+        self.idx2 = -1 # idx in Ckt.allSubCkts
         self.devices = [] # lowest level transistors
         self.deviceName2Id = {}
         self.subCkts = []
         self.subCktName2Id = {}
     def add_device(self, device):
-        self.deviceName2Id[device.name] = len(self.devices)
-        self.devices.append(device)
+        if device.name not in self.deviceName2Id.keys():
+            self.deviceName2Id[device.name] = len(self.devices)
+            self.devices.append(device)
     def add_subCkt(self, subCkt):
-        self.subCktName2Id[subCkt.name] = len(self.subCkts)
-        self.subCkts.append(subCkt)
+        if subCkt.name not in self.subCktName2Id.keys():
+            self.subCktName2Id[subCkt.name] = len(self.subCkts)
+            self.subCkts.append(subCkt)
 
 
 class Ckt(object):
@@ -90,14 +93,16 @@ class Ckt(object):
         self.deviceName2Id = {}
         self.subCkts = [] # hierarchy structured subckts
         self.subCktName2Id = {}
-        
+        self.allSubCkts = [] # all subckts (including ckts withdifferent hierarchy level)
+        self.allSubCktName2Id = {} 
 
     def add_net(self, net):
         self.nets[net.name] = net
     def add_device(self, device):
-        device.idx = len(self.devices)
-        self.deviceName2Id[device.name] = len(self.devices)
-        self.devices.append(device)
+        if device.name not in self.deviceName2Id.keys():
+            device.idx = len(self.devices)
+            self.deviceName2Id[device.name] = len(self.devices)
+            self.devices.append(device)
     def get_device_by_name(self, name):
         return self.devices[self.deviceName2Id[name]]
     def hasPowerNet(self):
@@ -111,6 +116,12 @@ class Ckt(object):
                 return True
         return False
     def add_subCkt(self, subCkt):
-        subCkt.idx = len(self.subCkts)
-        self.subCktName2Id[subCkt.name] = len(self.subCkts)
-        self.subCkts.append(subCkt)
+        if subCkt.name not in self.subCktName2Id.keys():
+            subCkt.idx = len(self.subCkts)
+            self.subCktName2Id[subCkt.name] = len(self.subCkts)
+            self.subCkts.append(subCkt)
+    def add_subCkt_2(self, subCkt):
+        if subCkt.name not in self.allSubCktName2Id.keys():
+            subCkt.idx2 = len(self.allSubCkts)
+            self.allSubCktName2Id[subCkt.name] = len(self.allSubCkts)
+            self.allSubCkts.append(subCkt)

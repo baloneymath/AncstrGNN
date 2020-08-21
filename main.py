@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 
 from util.config import params_setup, logging_setup
 from netlist import netlist, parse_netlist
@@ -33,6 +32,11 @@ def printCkt(subCkt, prefix, showDev=True):
     for ckt in subCkt.subCkts:
         printCkt(ckt, '|  ' + prefix, showDev)
 
+
+def embedSubCktFeature(subCkt, G_dgl, node_embeddings):
+
+    return
+
 def main():
     para = params_setup()
     netlist = init_netlist(para)
@@ -51,8 +55,10 @@ def main():
     print('Graph nodes {} edges {}'.format(G_dgl.number_of_nodes(), G_dgl.number_of_edges()))
     # nx.draw_networkx(G_nx)
     # plt.show()
-    G_dgl = extractFeature(G_dgl, topCkt)
+    
+    initFeature(G_dgl, topCkt)
     node_embeddings = train(G_dgl, para)
+    
 
     n1 = node_embeddings[topCkt.get_device_by_name('ADC_CORE/xi3/xi1/xi1<3>/xi0/m0').idx]
     n2 = node_embeddings[topCkt.get_device_by_name('ADC_CORE/xi3/xi1/xi1<5>/xi0/m0').idx]
