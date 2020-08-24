@@ -33,8 +33,9 @@ def printCkt(subCkt, prefix, showDev=True):
         printCkt(ckt, '|  ' + prefix, showDev)
 
 
-def embedSubCktFeature(subCkt, G_dgl, node_embeddings):
-
+def embedSubCktFeature(topCkt, G_dgl, node_embeddings):
+    # for subCkt in topCkt.allSubCkts:
+        
     return
 
 def main():
@@ -57,6 +58,7 @@ def main():
     G_dgl = initFeature(G_nx, topCkt)
     node_embeddings = train(G_dgl, para)
     
+    embedSubCktFeature(topCkt, G_dgl, node_embeddings)
 
     n1 = node_embeddings[topCkt.get_device_by_name('ADC_CORE/xi3/xi1/xi1<3>/xi0/m0').idx]
     n2 = node_embeddings[topCkt.get_device_by_name('ADC_CORE/xi3/xi1/xi1<5>/xi0/m0').idx]

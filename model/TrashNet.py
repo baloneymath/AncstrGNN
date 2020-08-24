@@ -26,8 +26,8 @@ class TrashNet(nn.Module):
         super(TrashNet, self).__init__()
         self.sage = SAGEConv(in_feats=in_feats, out_feats=hid_feats, aggregator_type='mean')
         self.sage2 = SAGEConv(in_feats=hid_feats, out_feats=out_feats, aggregator_type='mean')
-        # self.ggcn = GatedGraphConv(in_feats=in_feats, out_feats=hid_feats, n_steps=2, n_etypes=3)
-        # self.ggcn2 = GatedGraphConv(in_feats=hid_feats, out_feats=out_feats, n_steps=2, n_etypes=3)
+        self.ggcn = GatedGraphConv(in_feats=in_feats, out_feats=hid_feats, n_steps=2, n_etypes=3)
+        self.ggcn2 = GatedGraphConv(in_feats=hid_feats, out_feats=out_feats, n_steps=2, n_etypes=3)
         
         self.dropout = dropout
         self.pred = DotProductPredictor()
