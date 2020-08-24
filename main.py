@@ -47,16 +47,14 @@ def main():
 
     G_nx, topCkt = build_graph(netlist)
 
-
     # printCkt(topCkt, '|-', showDev=True)
     # return
 
-    G_dgl = dgl.DGLGraph(G_nx)
-    print('Graph nodes {} edges {}'.format(G_dgl.number_of_nodes(), G_dgl.number_of_edges()))
+    print('Graph nodes {} edges {}'.format(G_nx.number_of_nodes(), G_nx.number_of_edges()))
     # nx.draw_networkx(G_nx)
     # plt.show()
     
-    initFeature(G_dgl, topCkt)
+    G_dgl = initFeature(G_nx, topCkt)
     node_embeddings = train(G_dgl, para)
     
 

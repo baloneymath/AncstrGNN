@@ -5,9 +5,9 @@ import torch.nn as nn
 from model.TrashNet import TrashNet
 
 
-def initFeature(G, topCkt):
+def initFeature(G_nx, topCkt):
     feat = []
-    for i in range(G.number_of_nodes()):
+    for i in range(G_nx.number_of_nodes()):
         # print(G.in_edges(i))
         # print(topCkt.devices[i].param)
         dev = topCkt.devices[i]
@@ -25,7 +25,19 @@ def initFeature(G, topCkt):
         f[4] = float(dev.param['l']) / 1e-6
         f[5] = float(dev.param['w']) / 1e-6
         feat.append(f)
-    G.ndata['feat'] = torch.tensor(feat)
+    G_dgl = dgl.DGLGraph(G_nx)
+    G_dgl.ndata['feat'] = torch.tensor(feat)
+    
+    etype = []
+    for e, e_data in G_nx.edges.items():
+        if e_data['in_type'] == 'gate':
+            etype.append(0)
+        elif e_data['in_type'] == 'drain':
+            etype.append(1)
+        elif e_data['in_type'] == 'source':
+            etype.append(2)
+    G_dgl.edata['type'] = torch.tensor(etype)
+    return G_dgl
 
 def construct_negative_graph(G, k):
     src, dst = G.edges()
