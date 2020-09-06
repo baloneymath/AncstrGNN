@@ -15,7 +15,7 @@ class CktObj:
         self.name = name # str
 
 class Net(CktObj):
-    def __init__(self, name):
+    def __init__(self, name, isPower):
         CktObj.__init__(self, name)
         self.type = 'signal'
         if name in vss_set:
@@ -25,10 +25,9 @@ class Net(CktObj):
         elif name in clk_set:
             self.type = 'clk'
         self.pins = {}
+        self.isPower = isPower
     def add_pin(self, pin):
         self.pins[pin.name] = pin
-    def isPower(self):
-        return self.name in vss_set or self.name in vdd_set
 
 class Pin(CktObj):
     def __init__(self, name, device, type):
@@ -45,6 +44,7 @@ class Device(CktObj):
         self.level = level
         self.pins = []
         self.idx = -1 # idx in Ckt.devices
+        self.feat = None # trained feature
     def __str__(self):
         return self.name + ' ' + self.type
     def add_pin(self, pin):
@@ -73,6 +73,8 @@ class SubCkt(object):
         self.deviceName2Id = {}
         self.subCkts = []
         self.subCktName2Id = {}
+        self.nets = {}
+        self.feat = None # trained feature
     def add_device(self, device):
         if device.name not in self.deviceName2Id.keys():
             self.deviceName2Id[device.name] = len(self.devices)
@@ -81,7 +83,8 @@ class SubCkt(object):
         if subCkt.name not in self.subCktName2Id.keys():
             self.subCktName2Id[subCkt.name] = len(self.subCkts)
             self.subCkts.append(subCkt)
-
+    def add_net(self, net):
+        self.nets[net.name] = net
 
 class Ckt(object):
     def __init__(self, name, level):
@@ -95,6 +98,10 @@ class Ckt(object):
         self.subCktName2Id = {}
         self.allSubCkts = [] # all subckts (including ckts withdifferent hierarchy level)
         self.allSubCktName2Id = {} 
+        
+        self.max_level = 0
+        self.devices_level = []
+        self.allSubCkts_level = []
 
     def add_net(self, net):
         self.nets[net.name] = net
@@ -103,6 +110,12 @@ class Ckt(object):
             device.idx = len(self.devices)
             self.deviceName2Id[device.name] = len(self.devices)
             self.devices.append(device)
+            if device.level > self.max_level:
+                self.max_level = device.level
+                while len(self.devices_level) <= self.max_level + 1:
+                    self.devices_level.append([])
+            self.devices_level[device.level].append(device)
+
     def get_device_by_name(self, name):
         return self.devices[self.deviceName2Id[name]]
     def hasPowerNet(self):
@@ -125,3 +138,8 @@ class Ckt(object):
             subCkt.idx2 = len(self.allSubCkts)
             self.allSubCktName2Id[subCkt.name] = len(self.allSubCkts)
             self.allSubCkts.append(subCkt)
+            if subCkt.level > self.max_level:
+                self.max_level = subCkt.level
+                while len(self.allSubCkts_level) <= self.max_level + 1:
+                    self.allSubCkts_level.append([])
+            self.allSubCkts_level[subCkt.level].append(subCkt)
