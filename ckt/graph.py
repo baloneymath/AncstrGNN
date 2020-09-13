@@ -92,7 +92,11 @@ def build_graph_edge(G, netlist, subCkt, subNet, thisNet, thisInst, name_prefix)
             if thisNet.name == thisInst.pins[i]:
                 ids.append(i)
         for id in ids:
-            subNet.add_pin(subCkt.get_device_by_name(name_prefix).pins[id])
+            pin = subCkt.get_device_by_name(name_prefix).pins[id]
+            if not pin.connected:
+                pin.connected = True
+                pin.net = subNet
+                subNet.add_pin(pin)
         return
 
     # thisInst is subcircuit
@@ -146,21 +150,48 @@ def build_graph(netlist):
                 isPower = False
                 if net.name in vss_set or net.name in vdd_set:
                     isPower = True
-                topNet = Net(net.name, isPower)
-                topCkt.add_net(topNet)
+                topNet = Net(topCkt.name + '/' + net.name, isPower)
                 for inst in ckt.instances:
                     build_graph_edge(G, netlist, topCkt, topNet, net, inst, topCkt.name + '/' + inst.name)
-            for subCkt in topCkt.allSubCkts:
-                for ckt in netlist:
-                    if ckt.typeof == 'subcircuit' and ckt.name == subCkt.type:
-                        for net in ckt.nets.values():
-                            isPower = False
-                            if net.name in vss_set or net.name in vdd_set:
-                                isPower = True
-                            subNet = Net(net.name, isPower)
-                            subCkt.add_net(subNet)
-                            for inst in ckt.instances:
-                                build_graph_edge(G, netlist, subCkt, subNet, net, inst, subCkt.name + '/' + inst.name)
+                if len(topNet.pins) > 0:
+                    topCkt.add_net(topNet)
+            # reverse topologcal order
+            for i in range(len(topCkt.allSubCkts_level)):
+                for subCkt in topCkt.allSubCkts_level[i]:
+                    for ckt in netlist:
+                        if ckt.typeof == 'subcircuit' and ckt.name == subCkt.type:
+                            for net in ckt.nets.values():
+                                isPower = False
+                                if net.name in vss_set or net.name in vdd_set:
+                                    isPower = True
+                                subNet = Net(subCkt.name + '/' + net.name, isPower)
+                                for inst in ckt.instances:
+                                    build_graph_edge(G, netlist, subCkt, subNet, net, inst, subCkt.name + '/' + inst.name)
+                                if len(subNet.pins) > 0:
+                                    topCkt.add_net(subNet)
+            # for net in topCkt.nets.values():
+                # print(net.name, len(net.pins.keys()))
+    
+    # add subnets for each subCkt
+    # for subCkt in topCkt.allSubCkts:
+        # for net in topCkt.nets.values():
+            # isPower = False
+            # if net.name in vss_set or net.name in vdd_set:
+                # isPower = True
+            # subNet = Net(net.name + '/' + subCkt.name, isPower)
+            # for dev in subCkt.devices:
+                # for pin in dev.pins:
+                    # if pin in net.pins.values():
+                        # subNet.add_pin(pin)
+            # if len(subNet.pins) > 0:
+                # subCkt.add_net(subNet)
+        # for dev in subCkt.devices:
+            # for pin in dev.pins:
+                # if pin.net not in subCkt.nets.values():
+                    # subCkt.add_net(pin.net)
+                # else:
+                    # subCkt.nets[pin.net.name]
+                
     
     for net in topCkt.nets.values():
         if not net.isPower:
@@ -173,38 +204,24 @@ def build_graph(netlist):
                         continue
                     if i != j:
                         dev1, dev2 = pins[i].device, pins[j].device
+                        assert dev1 in topCkt.devices
+                        assert dev2 in topCkt.devices
                         if dev1.idx != dev2.idx:
                             in_type = pins[j].type
                             G.add_edge(dev1.idx, dev2.idx, in_type=in_type)
-    
 
-    # add subnets for each subCkt
-    for subCkt in topCkt.allSubCkts:
-        for net in topCkt.nets.values():
-            isPower = False
-            if net.name in vss_set or net.name in vdd_set:
-                isPower = True
-            subNet = Net(net.name + '/' + subCkt.name, isPower)
-            for dev in subCkt.devices:
-                for pin in dev.pins:
-                    if pin in net.pins.values():
-                        subNet.add_pin(pin)
-            if len(subNet.pins) > 0:
-                subCkt.add_net(subNet)
-        if subCkt.type == 'INVD0BWP':
-            print(subCkt.type)
-            for net in subCkt.nets.values():
-                print(net.name, net.pins.keys())
-            break
-    exit(0)
     
     G_dict[topCkt.name] = G
     # build subCkt graph
     for subCkt in topCkt.allSubCkts:
-        G = nx.MultiDiGraph()
+        subG = nx.MultiDiGraph()
         for dev in subCkt.devices:
-            G.add_node(dev.idx, device=dev)
-        for net in subCkt.nets.values():
+            subG.add_node(dev.idx, device=dev)
+        # for net in topCkt.nets.values():
+            # if net.name == 'DAC_SWITCHES/net91':
+                # print(net.name, net.pins.keys())
+        # exit(0)
+        for net in topCkt.nets.values():
             if not net.isPower:
                 pins = list(net.pins.values())
                 for i in range(len(pins)):
@@ -213,15 +230,20 @@ def build_graph(netlist):
                     for j in range(len(pins)):
                         if pins[j].type in ['bulk', 'passive_bulk']:
                             continue
-                    if i != j:
-                        dev1, dev2 = pins[i].device, pins[j].device
-                        if dev1.idx != dev2.idx:
-                            in_type = pins[j].type
-                            G.add_edge(dev1.idx, dev2.idx, in_type=in_type)
-        G_dict[subCkt.name] = G
+                        if i != j:
+                            dev1, dev2 = pins[i].device, pins[j].device
+                            if dev1 in subCkt.devices and dev2 in subCkt.devices:
+                                # assert dev1 in subCkt.devices
+                                # assert dev2 in subCkt.devices
+                                if dev1.idx != dev2.idx:
+                                    in_type = pins[j].type
+                                    subG.add_edge(dev1.idx, dev2.idx, in_type=in_type)
+        G_dict[subCkt.name] = subG
+        # print(subCkt.name, subCkt.type, subG.number_of_edges())
             
 
         # print(subCkt.name + ' ' + str(subCkt.level) + ' ' + str(len(subCkt.devices)))
+    # exit(0)
     return G_dict, topCkt
     
 

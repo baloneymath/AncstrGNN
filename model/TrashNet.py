@@ -19,10 +19,10 @@ class DotProductPredictor(nn.Module):
 class TrashNet(nn.Module):
     def __init__(self,in_feats):
         super(TrashNet, self).__init__()
-        self.sage = SAGEConv(in_feats=in_feats, out_feats=64, aggregator_type='mean')
-        self.sage2 = SAGEConv(in_feats=64, out_feats=64, aggregator_type='mean')
-        self.ggcn = GatedGraphConv(in_feats=in_feats, out_feats=64, n_steps=1, n_etypes=3)
-        self.ggcn2 = GatedGraphConv(in_feats=64, out_feats=64, n_steps=1, n_etypes=3)
+        self.sage = SAGEConv(in_feats=in_feats, out_feats=30, aggregator_type='mean')
+        self.sage2 = SAGEConv(in_feats=30, out_feats=30, aggregator_type='mean')
+        self.ggcn = GatedGraphConv(in_feats=in_feats, out_feats=30, n_steps=1, n_etypes=3)
+        self.ggcn2 = GatedGraphConv(in_feats=30, out_feats=30, n_steps=1, n_etypes=3)
         self.sigmoid = nn.Sigmoid()
         self.relu = nn.ReLU()
         self.lrelu = nn.LeakyReLU()
@@ -37,7 +37,7 @@ class TrashNet(nn.Module):
         # h = self.sigmoid(h)
         # h = self.dropout(h)
         # h = self.sage2(G, h)
-        # h = self.ggcn2(G, h, G.edata['type'])
+        h = self.ggcn2(G, h, G.edata['type'])
         # h = self.relu(h)
         # h = self.sigmoid(h)
         # h = self.dropout(h)

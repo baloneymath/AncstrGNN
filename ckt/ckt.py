@@ -35,6 +35,7 @@ class Pin(CktObj):
         self.device = device
         self.net = None
         self.type = type
+        self.connected = False
         self.connectedPins = {}
 
 class Device(CktObj):
@@ -121,8 +122,6 @@ class Ckt(object):
 
     def get_device_by_name(self, name):
         return self.devices[self.deviceName2Id[name]]
-    def get_subCkt_by_name(self, name):
-        return self.subCkts[self.subCktName2Id[name]]
     def hasPowerNet(self):
         for net in self.nets:
             if net.type in ['vss', 'vdd']:
