@@ -35,6 +35,7 @@ class Pin(CktObj):
         self.device = device
         self.net = None
         self.type = type
+        self.connectedPins = {}
 
 class Device(CktObj):
     def __init__(self, name, type, param, level):
@@ -75,6 +76,8 @@ class SubCkt(object):
         self.subCktName2Id = {}
         self.nets = {}
         self.feat = None # trained feature
+    def get_device_by_name(self, name):
+        return self.devices[self.deviceName2Id[name]]
     def add_device(self, device):
         if device.name not in self.deviceName2Id.keys():
             self.deviceName2Id[device.name] = len(self.devices)
@@ -118,6 +121,8 @@ class Ckt(object):
 
     def get_device_by_name(self, name):
         return self.devices[self.deviceName2Id[name]]
+    def get_subCkt_by_name(self, name):
+        return self.subCkts[self.subCktName2Id[name]]
     def hasPowerNet(self):
         for net in self.nets:
             if net.type in ['vss', 'vdd']:

@@ -79,7 +79,7 @@ def build_graph_node(G, netlist, topCkt, subCkt, thisInst, name_prefix, level):
     for inst in ckt_nl.instances:
         build_graph_node(G, netlist, topCkt, newSubCkt, inst, name_prefix + '/' + inst.name, level + 1)
 
-def build_graph_edge(G, netlist, topCkt, topNet, thisNet, thisInst, name_prefix):
+def build_graph_edge(G, netlist, subCkt, subNet, thisNet, thisInst, name_prefix):
     ckt_nl = None
     for ckt in netlist:
         if ckt.name == thisInst.reference:
@@ -92,7 +92,7 @@ def build_graph_edge(G, netlist, topCkt, topNet, thisNet, thisInst, name_prefix)
             if thisNet.name == thisInst.pins[i]:
                 ids.append(i)
         for id in ids:
-            topNet.add_pin(topCkt.get_device_by_name(name_prefix).pins[id])
+            subNet.add_pin(subCkt.get_device_by_name(name_prefix).pins[id])
         return
 
     # thisInst is subcircuit
@@ -103,7 +103,7 @@ def build_graph_edge(G, netlist, topCkt, topNet, thisNet, thisInst, name_prefix)
             net = ckt_nl.nets[ports[i]]
             # print(net.name)
             for inst in ckt_nl.instances:
-                build_graph_edge(G, netlist, topCkt, topNet, net, inst, name_prefix + '/' + inst.name)
+                build_graph_edge(G, netlist, subCkt, subNet, net, inst, name_prefix + '/' + inst.name)
 
 def flattenCkt(subCkt, devs):
     for dev in subCkt.devices:
@@ -117,11 +117,31 @@ def build_graph(netlist):
     G_dict = {}
     G = nx.MultiDiGraph()
     
+    # build nodes (devices)
     for ckt in netlist:
         if ckt.typeof == 'topcircuit':
             topCkt = Ckt(ckt.name, 0)
             for inst in ckt.instances:
                 build_graph_node(G, netlist, topCkt, topCkt, inst, topCkt.name + '/' + inst.name, 0)
+    # set devices for each subCkt
+    for subCkt in topCkt.allSubCkts:
+        allDevs = []
+        flattenCkt(subCkt, allDevs)
+        subCkt.devices = allDevs
+        for i in range(len(allDevs)):
+            dev = allDevs[i]
+            subCkt.deviceName2Id[dev.name] = i
+    # set level for all devices
+    max_level = 0
+    for dev in topCkt.devices:
+        G.add_node(dev.idx, device=dev)
+        if dev.level > max_level:
+            max_level = dev.level
+    
+    # build edges (nets)
+    for ckt in netlist:
+        # print(ckt.typeof, ckt.name)
+        if ckt.typeof == 'topcircuit':
             for net in ckt.nets.values():
                 isPower = False
                 if net.name in vss_set or net.name in vdd_set:
@@ -130,13 +150,17 @@ def build_graph(netlist):
                 topCkt.add_net(topNet)
                 for inst in ckt.instances:
                     build_graph_edge(G, netlist, topCkt, topNet, net, inst, topCkt.name + '/' + inst.name)
-    
-    max_level = 0
-    for dev in topCkt.devices:
-        G.add_node(dev.idx, device=dev)
-        if dev.level > max_level:
-            max_level = dev.level
-            
+            for subCkt in topCkt.allSubCkts:
+                for ckt in netlist:
+                    if ckt.typeof == 'subcircuit' and ckt.name == subCkt.type:
+                        for net in ckt.nets.values():
+                            isPower = False
+                            if net.name in vss_set or net.name in vdd_set:
+                                isPower = True
+                            subNet = Net(net.name, isPower)
+                            subCkt.add_net(subNet)
+                            for inst in ckt.instances:
+                                build_graph_edge(G, netlist, subCkt, subNet, net, inst, subCkt.name + '/' + inst.name)
     
     for net in topCkt.nets.values():
         if not net.isPower:
@@ -153,16 +177,7 @@ def build_graph(netlist):
                             in_type = pins[j].type
                             G.add_edge(dev1.idx, dev2.idx, in_type=in_type)
     
-    G_dict[topCkt.name] = G
 
-    # set devices for each subCkt
-    for subCkt in topCkt.allSubCkts:
-        allDevs = []
-        flattenCkt(subCkt, allDevs)
-        subCkt.devices = allDevs
-        for i in range(len(allDevs)):
-            dev = allDevs[i]
-            subCkt.deviceName2Id[dev.name] = i
     # add subnets for each subCkt
     for subCkt in topCkt.allSubCkts:
         for net in topCkt.nets.values():
@@ -174,7 +189,16 @@ def build_graph(netlist):
                 for pin in dev.pins:
                     if pin in net.pins.values():
                         subNet.add_pin(pin)
-            subCkt.add_net(subNet)
+            if len(subNet.pins) > 0:
+                subCkt.add_net(subNet)
+        if subCkt.type == 'INVD0BWP':
+            print(subCkt.type)
+            for net in subCkt.nets.values():
+                print(net.name, net.pins.keys())
+            break
+    exit(0)
+    
+    G_dict[topCkt.name] = G
     # build subCkt graph
     for subCkt in topCkt.allSubCkts:
         G = nx.MultiDiGraph()

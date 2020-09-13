@@ -68,6 +68,8 @@ def embedSubCktFeature(topCkt, G_nx_dict, node_embeddings):
             num_cat = min(5, len(pg))
             feat_cat = torch.cat([node_embeddings[sorted_pg[i][0]] for i in range(num_cat)])
             subCkt.feat = feat_cat
+        if subG.number_of_edges() == 0:
+            print(subCkt.name, subCkt.type, subG.number_of_nodes())
 
     return
 
