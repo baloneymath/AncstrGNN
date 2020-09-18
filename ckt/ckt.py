@@ -47,6 +47,8 @@ class Device(CktObj):
         self.pins = []
         self.idx = -1 # idx in Ckt.devices
         self.feat = None # trained feature
+        self.parentCkt = None
+        self.name_suffix = name.split('/')[-1]
     def __str__(self):
         return self.name + ' ' + self.type
     def add_pin(self, pin):
@@ -75,8 +77,10 @@ class SubCkt(object):
         self.deviceName2Id = {}
         self.subCkts = []
         self.subCktName2Id = {}
-        self.nets = {}
+        # self.nets = {}
         self.feat = None # trained feature
+        self.parentCkt = None
+        self.name_suffix = name.split('/')[-1]
     def get_device_by_name(self, name):
         return self.devices[self.deviceName2Id[name]]
     def add_device(self, device):
@@ -87,8 +91,8 @@ class SubCkt(object):
         if subCkt.name not in self.subCktName2Id.keys():
             self.subCktName2Id[subCkt.name] = len(self.subCkts)
             self.subCkts.append(subCkt)
-    def add_net(self, net):
-        self.nets[net.name] = net
+    # def add_net(self, net):
+        # self.nets[net.name] = net
 
 class Ckt(object):
     def __init__(self, name, level):
@@ -114,7 +118,7 @@ class Ckt(object):
             device.idx = len(self.devices)
             self.deviceName2Id[device.name] = len(self.devices)
             self.devices.append(device)
-            if device.level > self.max_level:
+            if device.level >= self.max_level:
                 self.max_level = device.level
                 while len(self.devices_level) <= self.max_level + 1:
                     self.devices_level.append([])
@@ -142,7 +146,7 @@ class Ckt(object):
             subCkt.idx2 = len(self.allSubCkts)
             self.allSubCktName2Id[subCkt.name] = len(self.allSubCkts)
             self.allSubCkts.append(subCkt)
-            if subCkt.level > self.max_level:
+            if subCkt.level >= self.max_level:
                 self.max_level = subCkt.level
                 while len(self.allSubCkts_level) <= self.max_level + 1:
                     self.allSubCkts_level.append([])

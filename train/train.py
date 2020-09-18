@@ -1,6 +1,7 @@
 import dgl
 import torch
 import torch.nn as nn
+from torch.utils.data import DataLoader
 
 from ckt.ckt import *
 from model.TrashNet import TrashNet
@@ -17,25 +18,34 @@ def initFeature(G_nx, topCkt):
         # print(G.in_edges(i))
         # print(topCkt.devices[i].param)
         dev = topCkt.devices[i]
-        # f = [0.] * 6
-        # if dev.isNmos():
-            # f[0] = 1.
-        # elif dev.isPmos():
-            # f[1] = 1.
-        # elif dev.isCap():
-            # f[2] = 1.
-        # elif dev.isRes():
-            # f[3] = 1.
-        # else:
-            # assert False
-        # f[4] = float(dev.param['l']) / 1e-7
-        # f[5] = float(dev.param['w']) / 1e-7
-        feat_len = len(dev_list) + 2
+        feat_len = len(dev_list) + 3
         f = [0.] * feat_len
         onehot = dev_list.index(dev.type)
         f[onehot] = 1.
-        f[-2] = float(dev.param['l']) / 1e-7
-        f[-1] = float(dev.param['w']) / 1e-7
+        if dev.isNmos() or dev.isPmos(): 
+            f[-3] = float(dev.param['l']) / 1e-7
+            f[-2] = float(dev.param['w']) / 1e-7
+            f[-1] = 1.
+        elif dev.isCap():
+            if dev.type == 'crtmom':
+                f[-3] = float(dev.param['nv']) * (float(dev.param['w']) + float(dev.param['s'])) / 1e-7
+                f[-2] = float(dev.param['nh']) * (float(dev.param['w']) + float(dev.param['s'])) / 1e-7
+                f[-1] = float(dev.param['spm']) - float(dev.param['stm'])
+            elif dev.type == 'cfmom':
+                f[-3] = float(dev.param['lr']) / 1e-7
+                f[-2] = float(dev.param['nr']) * (float(dev.param['w']) + float(dev.param['s'])) / 1e-7
+                f[-1] = float(dev.param['spm']) - float(dev.param['stm'])
+        elif dev.isRes():
+            if dev.type == 'rppolywo_m':
+                f[-3] = float(dev.param['lr']) / 1e-7
+                f[-2] = float(dev.param['wr']) / 1e-7
+                f[-1] = 1.
+            elif dev.type == 'rppolywo':
+                f[-3] = float(dev.param['l']) / 1e-7
+                f[-2] = float(dev.param['w']) / 1e-7
+                f[-1] = 1.
+
+
         feat.append(f)
     G_dgl = dgl.DGLGraph(G_nx)
     G_dgl.ndata['feat'] = torch.tensor(feat)
@@ -48,6 +58,9 @@ def initFeature(G_nx, topCkt):
             etype.append(1)
         elif e_data['in_type'] == 'source':
             etype.append(2)
+        else: # to passive devices
+            assert e_data['in_type'] == 'passive'
+            etype.append(3)
     G_dgl.edata['type'] = torch.tensor(etype)
     return G_dgl
 
@@ -82,6 +95,7 @@ def train(G, para):
 
 
     node_features = G.ndata['feat']
+    n_nodes = G.ndata['feat'].shape[0]
     n_features = G.ndata['feat'].shape[1] # number of features
     k = 5
 
@@ -93,13 +107,16 @@ def train(G, para):
     model = model.to(device)
 
 
-    for epoch in range(250):
-        neg_G = construct_negative_graph(G, k)
-        pos_score, neg_score = model(G, neg_G, node_features)
-        loss = compute_loss(pos_score, neg_score)
-        opt.zero_grad()
-        loss.backward()
-        opt.step()
+    data_loader = DataLoader(node_features, batch_size=n_nodes, shuffle=True)
+
+    for epoch in range(300):
+        for iter, feats in enumerate(data_loader):
+            neg_G = construct_negative_graph(G, k)
+            pos_score, neg_score = model(G, neg_G, feats)
+            loss = compute_loss(pos_score, neg_score)
+            opt.zero_grad()
+            loss.backward()
+            opt.step()
         print('epoch: {}, loss: {}'.format(epoch, loss.item()))
 
     return model.forward_(G, node_features)

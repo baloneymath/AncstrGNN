@@ -34,7 +34,7 @@ def isThreeTerm(inst):
         return True
     return False
 
-def build_graph_node(G, netlist, topCkt, subCkt, thisInst, name_prefix, level):
+def build_ckt_dev(netlist, topCkt, subCkt, thisInst, name_prefix, level):
     ckt_nl = None
     for ckt in netlist:
         if ckt.name == thisInst.reference:
@@ -61,11 +61,12 @@ def build_graph_node(G, netlist, topCkt, subCkt, thisInst, name_prefix, level):
                 b = Pin(dev.name + '.b', dev, 'passive_bulk')
                 dev.add_pin(b)
         else:
+            print(thisInst)
             assert False
 
+        dev.parentCkt = subCkt
         topCkt.add_device(dev)
         subCkt.add_device(dev)
-        # G.add_node(dev.name, device=dev)
         # print(dev)
         return
 
@@ -74,12 +75,13 @@ def build_graph_node(G, netlist, topCkt, subCkt, thisInst, name_prefix, level):
     # print(ports)
     # thisInst is subcircuit
     newSubCkt = SubCkt(name_prefix, thisInst.reference, level + 1)
+    newSubCkt.parentCkt = subCkt
     subCkt.add_subCkt(newSubCkt)
     topCkt.add_subCkt_2(newSubCkt)
     for inst in ckt_nl.instances:
-        build_graph_node(G, netlist, topCkt, newSubCkt, inst, name_prefix + '/' + inst.name, level + 1)
+        build_ckt_dev(netlist, topCkt, newSubCkt, inst, name_prefix + '/' + inst.name, level + 1)
 
-def build_graph_edge(G, netlist, subCkt, subNet, thisNet, thisInst, name_prefix):
+def build_net(netlist, subCkt, subNet, thisNet, thisInst, name_prefix):
     ckt_nl = None
     for ckt in netlist:
         if ckt.name == thisInst.reference:
@@ -107,7 +109,7 @@ def build_graph_edge(G, netlist, subCkt, subNet, thisNet, thisInst, name_prefix)
             net = ckt_nl.nets[ports[i]]
             # print(net.name)
             for inst in ckt_nl.instances:
-                build_graph_edge(G, netlist, subCkt, subNet, net, inst, name_prefix + '/' + inst.name)
+                build_net(netlist, subCkt, subNet, net, inst, name_prefix + '/' + inst.name)
 
 def flattenCkt(subCkt, devs):
     for dev in subCkt.devices:
@@ -126,7 +128,7 @@ def build_graph(netlist):
         if ckt.typeof == 'topcircuit':
             topCkt = Ckt(ckt.name, 0)
             for inst in ckt.instances:
-                build_graph_node(G, netlist, topCkt, topCkt, inst, topCkt.name + '/' + inst.name, 0)
+                build_ckt_dev(netlist, topCkt, topCkt, inst, topCkt.name + '/' + inst.name, 0)
     # set devices for each subCkt
     for subCkt in topCkt.allSubCkts:
         allDevs = []
@@ -136,11 +138,8 @@ def build_graph(netlist):
             dev = allDevs[i]
             subCkt.deviceName2Id[dev.name] = i
     # set level for all devices
-    max_level = 0
     for dev in topCkt.devices:
         G.add_node(dev.idx, device=dev)
-        if dev.level > max_level:
-            max_level = dev.level
     
     # build edges (nets)
     for ckt in netlist:
@@ -152,7 +151,7 @@ def build_graph(netlist):
                     isPower = True
                 topNet = Net(topCkt.name + '/' + net.name, isPower)
                 for inst in ckt.instances:
-                    build_graph_edge(G, netlist, topCkt, topNet, net, inst, topCkt.name + '/' + inst.name)
+                    build_net(netlist, topCkt, topNet, net, inst, topCkt.name + '/' + inst.name)
                 if len(topNet.pins) > 0:
                     topCkt.add_net(topNet)
             # reverse topologcal order
@@ -166,7 +165,7 @@ def build_graph(netlist):
                                     isPower = True
                                 subNet = Net(subCkt.name + '/' + net.name, isPower)
                                 for inst in ckt.instances:
-                                    build_graph_edge(G, netlist, subCkt, subNet, net, inst, subCkt.name + '/' + inst.name)
+                                    build_net(netlist, subCkt, subNet, net, inst, subCkt.name + '/' + inst.name)
                                 if len(subNet.pins) > 0:
                                     topCkt.add_net(subNet)
             # for net in topCkt.nets.values():
