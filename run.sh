@@ -1,9 +1,12 @@
 #!/bin/bash
 
 BENCH=./benchmark
-CIR=$1
 
-python3 main.py --netlist $BENCH/$1.sp \
-                --sym $BENCH/sym/$1.sym
+python3 main.py --netlist $BENCH/CTDSM_CORE_NEW.sp \
+                          $BENCH/ADC_CORE.sp \
+                          $BENCH/CTDTDSM_V3.sp \
+                --sym $BENCH/sym/CTDSM_CORE_NEW.sym \
+                      $BENCH/sym/ADC_CORE.sym \
+                      $BENCH/sym/CTDTDSM_V3.sym
 
 

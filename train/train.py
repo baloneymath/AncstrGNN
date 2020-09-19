@@ -21,29 +21,29 @@ def initFeature(G_nx, topCkt):
         feat_len = len(dev_list) + 3
         f = [0.] * feat_len
         onehot = dev_list.index(dev.type)
-        f[onehot] = 1.
+        f[onehot] = 1
         if dev.isNmos() or dev.isPmos(): 
             f[-3] = float(dev.param['l']) / 1e-7
             f[-2] = float(dev.param['w']) / 1e-7
-            f[-1] = 1.
+            f[-1] = 1
         elif dev.isCap():
             if dev.type == 'crtmom':
                 f[-3] = float(dev.param['nv']) * (float(dev.param['w']) + float(dev.param['s'])) / 1e-7
                 f[-2] = float(dev.param['nh']) * (float(dev.param['w']) + float(dev.param['s'])) / 1e-7
-                f[-1] = float(dev.param['spm']) - float(dev.param['stm'])
+                f[-1] = int(dev.param['spm']) - int(dev.param['stm'])
             elif dev.type == 'cfmom':
                 f[-3] = float(dev.param['lr']) / 1e-7
                 f[-2] = float(dev.param['nr']) * (float(dev.param['w']) + float(dev.param['s'])) / 1e-7
-                f[-1] = float(dev.param['spm']) - float(dev.param['stm'])
+                f[-1] = int(dev.param['spm']) - int(dev.param['stm'])
         elif dev.isRes():
             if dev.type == 'rppolywo_m':
                 f[-3] = float(dev.param['lr']) / 1e-7
                 f[-2] = float(dev.param['wr']) / 1e-7
-                f[-1] = 1.
+                f[-1] = 1
             elif dev.type == 'rppolywo':
                 f[-3] = float(dev.param['l']) / 1e-7
                 f[-2] = float(dev.param['w']) / 1e-7
-                f[-1] = 1.
+                f[-1] = 1
 
 
         feat.append(f)
@@ -84,7 +84,7 @@ def compute_loss(pos_score, neg_score):
     return (-torch.log(eps + pos) - torch.log(eps + 1 - neg)).mean()
     
 
-def train(G, para):
+def train(G_dgl_dict, para):
 
     if torch.cuda.is_available():  
       dev = "cuda:0" 
@@ -93,6 +93,7 @@ def train(G, para):
 
     device = torch.device(dev)
 
+    G = dgl.batch(list(G_dgl_dict.values()))
 
     node_features = G.ndata['feat']
     n_nodes = G.ndata['feat'].shape[0]
@@ -117,6 +118,10 @@ def train(G, para):
             opt.zero_grad()
             loss.backward()
             opt.step()
-        print('epoch: {}, loss: {}'.format(epoch, loss.item()))
+        print('epoch: {}, loss: {}'.format(epoch+1, loss.item()))
 
-    return model.forward_(G, node_features)
+    node_embeddings = dict()
+    for key, val in G_dgl_dict.items():
+        node_embeddings[key] = model.forward_(val, val.ndata['feat'].to(device))
+
+    return node_embeddings

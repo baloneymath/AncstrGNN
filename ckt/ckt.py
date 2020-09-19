@@ -3,11 +3,16 @@ clk_set = {"clk", "clksb", "clks_boost", "clkb", "clkbo"}
 vss_set = {"gnd", "vss", "vss_sub", "vrefn", "vrefnd", "avss", "dvss", "vss_d"}
 vdd_set = {"vdd", "vdd_and", "vdd_c", "vdd_comp", "vdd_gm", "vddd", "vdda", "veld", "avdd", "vrefp", "vrefnp", "avdd_sar", "vdd_ac", "dvdd", "vdd_int", "vddac", "vdd_d"}
 
-nmos_set = {"nmos", "nch", "nch_na", "nch_mac", "nch_lvt", "nch_lvt_mac", "nch_25_mac", "nch_na25_mac", "nch_hvt_mac", "nch_25ud18_mac"}
-pmos_set = {"pmos", "pch", "pch_mac", "pch_lvt", "pch_lvt_mac", "pch_25_mac", "pch_na25_mac", "pch_hvt_mac", "nch_25ud18_mac"}
+# nmos_set = {"nmos", "nch", "nch_na", "nch_mac", "nch_lvt", "nch_lvt_mac", "nch_25_mac", "nch_na25_mac", "nch_hvt_mac", "nch_25ud18_mac"}
+# pmos_set = {"pmos", "pch", "pch_mac", "pch_lvt", "pch_lvt_mac", "pch_25_mac", "pch_na25_mac", "pch_hvt_mac", "nch_25ud18_mac"}
+nmos_set = {"nch", "nch_mac", "nch_lvt", "nch_lvt_mac", "nch_hvt_mac"}
+pmos_set = {"pch", "pch_mac", "pch_lvt", "pch_lvt_mac", "pch_hvt_mac"}
 
-capacitor_set = {"cfmom", "cfmom_2t", "crtmom_2t", "crtmom"}
-resistor_set = {"rppoly", "rppoly_m", "rppolywo_m", "rppolywo", "rppolyl"}
+# capacitor_set = {"cfmom", "cfmom_2t", "crtmom_2t", "crtmom"}
+# resistor_set = {"rppoly", "rppoly_m", "rppolywo_m", "rppolywo", "rppolyl"}
+capacitor_set = {"cfmom", "crtmom"}
+resistor_set = {"rppolywo_m", "rppolywo"}
+
 three_term_set = {'cfmom', 'crtmom', 'rppolywo_m'}
 
 class CktObj:

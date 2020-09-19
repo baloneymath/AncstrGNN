@@ -6,8 +6,8 @@ from util.util import create_dir, check_path_exists
 
 def params_setup():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--netlist', type=str, default='')
-    parser.add_argument('--sym', type=str, default='')
+    parser.add_argument('--netlist', type=str, nargs='*', default='')
+    parser.add_argument('--sym', type=str, nargs='*', default='')
     parser.add_argument('--attention_len', type=int, default=16)
     parser.add_argument('--batch_size', type=int, default=32)
     parser.add_argument('--file_output', type=int, default=1)
