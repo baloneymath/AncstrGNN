@@ -10,7 +10,7 @@ pmos_set = {"pch", "pch_mac", "pch_lvt", "pch_lvt_mac", "pch_hvt_mac"}
 
 # capacitor_set = {"cfmom", "cfmom_2t", "crtmom_2t", "crtmom"}
 # resistor_set = {"rppoly", "rppoly_m", "rppolywo_m", "rppolywo", "rppolyl"}
-capacitor_set = {"cfmom", "crtmom"}
+capacitor_set = {"cfmom", "crtmom", "cfmom_2t"}
 resistor_set = {"rppolywo_m", "rppolywo"}
 
 three_term_set = {'cfmom', 'crtmom', 'rppolywo_m'}

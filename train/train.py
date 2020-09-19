@@ -31,7 +31,7 @@ def initFeature(G_nx, topCkt):
                 f[-3] = float(dev.param['nv']) * (float(dev.param['w']) + float(dev.param['s'])) / 1e-7
                 f[-2] = float(dev.param['nh']) * (float(dev.param['w']) + float(dev.param['s'])) / 1e-7
                 f[-1] = int(dev.param['spm']) - int(dev.param['stm'])
-            elif dev.type == 'cfmom':
+            elif dev.type == 'cfmom' or 'cfmom_2t':
                 f[-3] = float(dev.param['lr']) / 1e-7
                 f[-2] = float(dev.param['nr']) * (float(dev.param['w']) + float(dev.param['s'])) / 1e-7
                 f[-1] = int(dev.param['spm']) - int(dev.param['stm'])

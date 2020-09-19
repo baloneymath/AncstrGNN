@@ -74,18 +74,21 @@ def embedSubCktFeature(topCkt, G_nx_dict):
                 pg = nx.pagerank(simpG, alpha=0.85)
                 sorted_pg = sorted(pg.items(), key=lambda x: x[1], reverse=True)
                 
-                # num_cat = min(10, len(pg))
+                # num_cat = min(5, len(pg))
                 num_cat = len(pg)
                 # feat_cat = torch.mean(torch.stack([ckt.devices[sorted_pg[i][0]].feat for i in range(num_cat)]), dim=0)
                 feat_cat = torch.cat([ckt.devices[sorted_pg[i][0]].feat for i in range(num_cat)])
                 subCkt.feat = feat_cat
             if subG.number_of_edges() == 0:
                 # print(subCkt.name, subCkt.type, subG.number_of_nodes())
-                assert subG.number_of_nodes() == 1
-                feat = None
+                # if subG.number_of_nodes() > 1:
+                    # print(subCkt.name)
+                # assert subG.number_of_nodes() == 1
+                feats = []
                 for n, d in subG.nodes(data=True):
-                    feat = d['device'].feat
-                subCkt.feat = feat
+                    feats.append(d['device'].feat)
+                feat_cat = torch.cat(feats)
+                subCkt.feat = feat_cat
 
             assert subCkt.feat != None
     return
@@ -130,7 +133,6 @@ def computeMatching(topCkt, threshold):
                                 match_ckt[cktName][parentCkt.name].append({ckt_i.name_suffix, ckt_j.name_suffix})
 
             # print()
-
     return match_ckt
 
 def computeAccuracy(topCkt, match_ckt, sym_ans):
@@ -175,7 +177,10 @@ def computeAccuracy(topCkt, match_ckt, sym_ans):
             else:
                 assert False
 
-        precision = true_pos / (true_pos + false_pos)
+        if true_pos == 0:
+            precision = 1
+        else:
+            precision = true_pos / (true_pos + false_pos)
         recall    = true_pos / (true_pos + false_neg)
         accuracy  = (true_pos + true_neg) / (true_pos + true_neg + false_pos + false_neg)
         FPR       = false_pos / (false_pos + true_neg)
@@ -224,7 +229,7 @@ def main():
     embedSubCktFeature(topCkt, G_nx_dict)
 
     result = dict()
-    for th in list(np.linspace(0.9, 1.0, 101)):
+    for th in list(np.linspace(0.9, 1, 101)):
         print('Computing matching with threshold {}'.format(th))
         match_ckt = computeMatching(topCkt, th)
         result[th] = computeAccuracy(topCkt, match_ckt, sym_ans)
@@ -232,13 +237,12 @@ def main():
     for th, res in result.items():
         print('Threshold {}'.format(th))
         for key, val in res.items():
-            print('  {:<15} precision: {:<20} recall: {:<20} accuracy: {:<20} FPR: {:<22} FOR: {:<22} F1: {:<22} MCC: {:<22}'.format(
+            print('  {:<15} precision: {:<20} recall: {:<20} accuracy: {:<20} FPR: {:<22} F1: {:<22} MCC: {:<22}'.format(
                 key,
                 val['precision'],
                 val['recall'],
                 val['accuracy'],
                 val['FPR'],
-                val['FOR'],
                 val['F1'],
                 val['MCC']))
         print()
