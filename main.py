@@ -74,7 +74,9 @@ def embedSubCktFeature(topCkt, G_nx_dict):
                 pg = nx.pagerank(simpG, alpha=0.85)
                 sorted_pg = sorted(pg.items(), key=lambda x: x[1], reverse=True)
                 
-                num_cat = min(5, len(pg))
+                # num_cat = min(10, len(pg))
+                num_cat = len(pg)
+                # feat_cat = torch.mean(torch.stack([ckt.devices[sorted_pg[i][0]].feat for i in range(num_cat)]), dim=0)
                 feat_cat = torch.cat([ckt.devices[sorted_pg[i][0]].feat for i in range(num_cat)])
                 subCkt.feat = feat_cat
             if subG.number_of_edges() == 0:
@@ -123,7 +125,7 @@ def computeMatching(topCkt, threshold):
 
                             if val >= threshold:
                                 parentCkt = ckt_i.parentCkt
-                                if parentCkt.name not in match_ckt[cktName].keys():
+                                if parentCkt.name not in match_ckt[cktName]:
                                     match_ckt[cktName][parentCkt.name] = list()
                                 match_ckt[cktName][parentCkt.name].append({ckt_i.name_suffix, ckt_j.name_suffix})
 
@@ -149,11 +151,11 @@ def computeAccuracy(topCkt, match_ckt, sym_ans):
                 else:
                     parName = ckt_i.parentCkt.name
                     tar = {ckt_i.name_suffix, ckt_j.name_suffix}
-                    if parName in match_ckt[cktName].keys() and tar in match_ckt[cktName][parName]:
+                    if parName in match_ckt[cktName] and tar in match_ckt[cktName][parName]:
                         res.append(1)
                     else:
                         res.append(0)
-                    if parName in sym_ans[cktName].keys() and tar in sym_ans[cktName][parName]:
+                    if parName in sym_ans[cktName] and tar in sym_ans[cktName][parName]:
                         ans.append(1)
                     else:
                         ans.append(0)
@@ -179,15 +181,14 @@ def computeAccuracy(topCkt, match_ckt, sym_ans):
         FPR       = false_pos / (false_pos + true_neg)
         FOR       = false_neg / (false_neg + true_neg)
         F1        = 2 * precision * recall / (precision + recall)
-        # print(precision)
-        # print(recall)
-        # print(accuracy)
+        MCC       = (true_pos * true_neg + false_pos * false_neg) / np.sqrt((true_pos + false_pos) * (true_pos + false_neg) * (true_neg + false_pos) * (true_neg + false_neg))
         result[cktName] = {'precision': precision,
                            'recall': recall,
                            'accuracy': accuracy,
                            'FPR': FPR,
                            'FOR': FOR,
-                           'F1': F1}
+                           'F1': F1,
+                           'MCC': MCC}
 
 
     return result
@@ -223,7 +224,7 @@ def main():
     embedSubCktFeature(topCkt, G_nx_dict)
 
     result = dict()
-    for th in list(np.linspace(0.8, 1.0, 100)):
+    for th in list(np.linspace(0.9, 1.0, 101)):
         print('Computing matching with threshold {}'.format(th))
         match_ckt = computeMatching(topCkt, th)
         result[th] = computeAccuracy(topCkt, match_ckt, sym_ans)
@@ -231,14 +232,15 @@ def main():
     for th, res in result.items():
         print('Threshold {}'.format(th))
         for key, val in res.items():
-            print('  {:<15} precision: {:<20} recall: {:<20} accuracy: {:<20} FPR: {:<22} FOR: {:<22} F1: {:<22}'.format(
+            print('  {:<15} precision: {:<20} recall: {:<20} accuracy: {:<20} FPR: {:<22} FOR: {:<22} F1: {:<22} MCC: {:<22}'.format(
                 key,
                 val['precision'],
                 val['recall'],
                 val['accuracy'],
                 val['FPR'],
                 val['FOR'],
-                val['F1']))
+                val['F1'],
+                val['MCC']))
         print()
 
 
