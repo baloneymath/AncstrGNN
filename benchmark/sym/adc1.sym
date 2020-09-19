@@ -1,0 +1,54 @@
+adc1
+xr47 xr28
+xr21 xr20
+xr23 xr22
+xr25 xr24
+xr19 xr18
+xr16 xr17
+xc0 xc4
+xc2 xc1
+rr1 rr2
+
+adc1/input_res
+xr13 xr14
+
+adc1/xi20
+xm40 xm43
+xm49 xm50
+xm56 xm57
+xm61 xm8
+xr8 xr2
+xc1 xc0
+xm9 xm67
+xr1 xr10
+xc7 xc6
+xc4 xc3
+xm7 xm10
+xm53 xm12
+xm66 xm64
+
+adc1/xi22
+xm40 xm43
+xm49 xm50
+xm56 xm57
+xm61 xm8
+xr8 xr2
+xc1 xc0
+xm9 xm67
+xr1 xr10
+xc7 xc6
+xc4 xc3
+xm7 xm10
+xm53 xm12
+xm66 xm64
+
+adc1/xi19
+xm6 xm5
+xm2 xm18
+xm3 xm4
+xm12 xm1
+xm8 xm15
+xm13 xm14
+xm16 xm17
+xm22 xm0
+

@@ -1,0 +1,51 @@
+ADC_CORE
+xi11 xi12
+xi0 xi1
+
+ADC_CORE/xi13
+xi1 xi0
+
+ADC_CORE/xi3/xi1
+xi0 xi1<1> xi1<2> xi1<3> xi1<4> xi1<5> xi1<6> xi1<7> xi1<8> xi1<9>
+xi2<1> xi2<2> xi2<3> xi2<4> xi2<5> xi2<6> xi2<7> xi2<8> xi2<9> xi3<1> xi3<2> xi3<3> xi3<4> xi3<5> xi3<6> xi3<7> xi3<8> xi3<9>
+
+ADC_CORE/xi3/xi0
+xi18<1> xi18<2> xi18<3> xi18<4> xi18<5> xi18<6> xi18<7> xi18<8> xi18<9> xi18<10> xi17
+xi16<1> xi16<2> xi16<3> xi16<4> xi16<5> xi16<6> xi16<7> xi16<8> xi16<9> xi16<10>
+
+ADC_CORE/xi0/xi2
+xi3 xi4 xi5 xi6 xi7 xi8 xi9 xi1 xi2
+
+ADC_CORE/xi1/xi2
+xi3 xi4 xi5 xi6 xi7 xi8 xi9 xi1 xi2
+
+ADC_CORE/xi3/xi1/xi0
+xi0 xi1
+
+ADC_CORE/xi3/xi1/xi1<1>
+xi0 xi1
+
+ADC_CORE/xi3/xi1/xi1<2>
+xi0 xi1
+
+ADC_CORE/xi3/xi1/xi1<3>
+xi0 xi1
+
+ADC_CORE/xi3/xi1/xi1<4>
+xi0 xi1
+
+ADC_CORE/xi3/xi1/xi1<5>
+xi0 xi1
+
+ADC_CORE/xi3/xi1/xi1<6>
+xi0 xi1
+
+ADC_CORE/xi3/xi1/xi1<7>
+xi0 xi1
+
+ADC_CORE/xi3/xi1/xi1<8>
+xi0 xi1
+
+ADC_CORE/xi3/xi1/xi1<9>
+xi0 xi1
+
