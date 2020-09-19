@@ -129,4 +129,5 @@ dmypy.json
 .pyre/
 
 # benchmark
+benchmark
 out/
