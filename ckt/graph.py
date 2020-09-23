@@ -138,7 +138,7 @@ def build_graph(netlist):
             dev = allDevs[i]
             subCkt.deviceName2Id[dev.name] = i
     # set level for all devices
-    for dev in topCkt.devices:
+    for dev in topCkt.allDevices:
         G.add_node(dev.idx, device=dev)
     
     # build edges (nets)
@@ -203,8 +203,8 @@ def build_graph(netlist):
                         continue
                     if i != j:
                         dev1, dev2 = pins[i].device, pins[j].device
-                        assert dev1 in topCkt.devices
-                        assert dev2 in topCkt.devices
+                        assert dev1 in topCkt.allDevices
+                        assert dev2 in topCkt.allDevices
                         if dev1.idx != dev2.idx:
                             in_type = pins[j].type
                             G.add_edge(dev1.idx, dev2.idx, in_type=in_type)

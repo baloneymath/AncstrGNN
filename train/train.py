@@ -4,7 +4,7 @@ import torch.nn as nn
 from torch.utils.data import DataLoader
 
 from ckt.ckt import *
-from model.TrashNet import TrashNet
+from train.TrashNet import TrashNet
 
 
 def initFeature(G_nx, topCkt):
@@ -16,8 +16,8 @@ def initFeature(G_nx, topCkt):
     feat = []
     for i in range(G_nx.number_of_nodes()):
         # print(G.in_edges(i))
-        # print(topCkt.devices[i].param)
-        dev = topCkt.devices[i]
+        # print(topCkt.allDevices[i].param)
+        dev = topCkt.allDevices[i]
         feat_len = len(dev_list) + 3
         f = [0.] * feat_len
         onehot = dev_list.index(dev.type)
@@ -85,7 +85,7 @@ def compute_loss(pos_score, neg_score):
     
 
 def train(G_dgl_dict, para):
-
+    
     if torch.cuda.is_available():  
       dev = "cuda:0" 
     else:  
@@ -93,7 +93,12 @@ def train(G_dgl_dict, para):
 
     device = torch.device(dev)
 
-    G = dgl.batch(list(G_dgl_dict.values()))
+    graphs = []
+    for cktName, g in G_dgl_dict.items():
+        # if cktName == 'CTDTDSM_V3':
+            # continue
+        graphs.append(g)
+    G = dgl.batch(graphs)
 
     node_features = G.ndata['feat']
     n_nodes = G.ndata['feat'].shape[0]
@@ -110,7 +115,7 @@ def train(G_dgl_dict, para):
 
     data_loader = DataLoader(node_features, batch_size=n_nodes, shuffle=True)
 
-    for epoch in range(300):
+    for epoch in range(600):
         for iter, feats in enumerate(data_loader):
             neg_G = construct_negative_graph(G, k)
             pos_score, neg_score = model(G, neg_G, feats)
@@ -119,6 +124,15 @@ def train(G_dgl_dict, para):
             loss.backward()
             opt.step()
         print('epoch: {}, loss: {}'.format(epoch+1, loss.item()))
+
+    return model
+
+def inference(G_dgl_dict, model):
+    if torch.cuda.is_available():
+        dev = "cuda:0"
+    else:
+        dev = "cpu"
+    device = torch.device(dev)
 
     node_embeddings = dict()
     for key, val in G_dgl_dict.items():

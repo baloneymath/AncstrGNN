@@ -8,22 +8,18 @@ def params_setup():
     parser = argparse.ArgumentParser()
     parser.add_argument('--netlist', type=str, nargs='*', default='')
     parser.add_argument('--sym', type=str, nargs='*', default='')
-    parser.add_argument('--attention_len', type=int, default=16)
-    parser.add_argument('--batch_size', type=int, default=32)
-    parser.add_argument('--file_output', type=int, default=1)
-    parser.add_argument('--init_weight', type=float, default=0.1)
-    parser.add_argument('--learning_rate', type=float, default=1e-5)
+    parser.add_argument('--s3det', type=str, nargs='*', default='')
+    parser.add_argument('--s3det_pair', type=str, nargs='*', default='')
     parser.add_argument('--mode', type=str, default='train')
     parser.add_argument('--out_dir', type=str, default='./out')
-    parser.add_argument('--num_epochs', type=float, default=0.25)
+    parser.add_argument('--save_model', type=str, default='')
+    parser.add_argument('--load_model', type=str, default='')
+
 
 
     para = parser.parse_args()
 
     para.logging_level = logging.INFO
-
-    if para.attention_len == -1:
-        para.attention_len = para.max_len
 
     create_dir(para.out_dir)
 

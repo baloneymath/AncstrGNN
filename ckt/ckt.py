@@ -102,11 +102,14 @@ class SubCkt(object):
 class Ckt(object):
     def __init__(self, name, level):
         self.name = name
+        self.name_suffix = name
         self.type = 'TOP'
         self.level = level
         self.nets = {}
-        self.devices = [] # all lowest level transistors
-        self.deviceName2Id = {}
+
+        self.allDevices = [] # all lowest level transistors
+        self.allDeviceName2Id = {}
+        
         self.subCkts = [] # hierarchy structured subckts
         self.subCktName2Id = {}
         self.allSubCkts = [] # all subckts (including ckts withdifferent hierarchy level)
@@ -116,13 +119,16 @@ class Ckt(object):
         self.devices_level = []
         self.allSubCkts_level = []
 
+        self.avg_indeg = 0
+        self.avg_size = 0
+
     def add_net(self, net):
         self.nets[net.name] = net
     def add_device(self, device):
-        if device.name not in self.deviceName2Id.keys():
-            device.idx = len(self.devices)
-            self.deviceName2Id[device.name] = len(self.devices)
-            self.devices.append(device)
+        if device.name not in self.allDeviceName2Id.keys():
+            device.idx = len(self.allDevices)
+            self.allDeviceName2Id[device.name] = len(self.allDevices)
+            self.allDevices.append(device)
             if device.level >= self.max_level:
                 self.max_level = device.level
                 while len(self.devices_level) <= self.max_level + 1:
@@ -130,7 +136,7 @@ class Ckt(object):
             self.devices_level[device.level].append(device)
 
     def get_device_by_name(self, name):
-        return self.devices[self.deviceName2Id[name]]
+        return self.allDevices[self.allDeviceName2Id[name]]
     def hasPowerNet(self):
         for net in self.nets:
             if net.type in ['vss', 'vdd']:
@@ -156,3 +162,5 @@ class Ckt(object):
                 while len(self.allSubCkts_level) <= self.max_level + 1:
                     self.allSubCkts_level.append([])
             self.allSubCkts_level[subCkt.level].append(subCkt)
+    def get_subCkt_by_name(self, name):
+        return self.allSubCkts[self.allSubCktName2Id[name]]
