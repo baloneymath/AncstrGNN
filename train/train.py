@@ -134,7 +134,7 @@ def train(G_dgl_dict, para):
 
     data_loader = DataLoader(node_features, batch_size=n_nodes, shuffle=True)
 
-    for epoch in range(300):
+    for epoch in range(1000):
         for iter, feats in enumerate(data_loader):
             neg_G = construct_negative_graph(G, k)
             pos_score, neg_score = model(G, neg_G, feats)

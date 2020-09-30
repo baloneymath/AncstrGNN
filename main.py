@@ -128,7 +128,10 @@ def embedSubCktFeature(topCkt, G_nx_dict):
     return
 
 def fitThreshold(ckt_size, avg_deg, avg_size, max_size):
-    return min(1., 0.95 + 0.6 / (max_size + 1e-8))
+    if max_size > 0:
+        return min(1., 0.95 + 0.6 / (max_size + 1e-8))
+    else:
+        return 0.99
     # return min(1, 0.95 + 2e-3 * avg_size)
     # return min(1, 0.953 + 2.5e-3 * avg_deg)
     # return max(1.0026 - 1.35e-5 * ckt_size, 0.95)
@@ -201,14 +204,20 @@ def computeMatching(topCkt, use_dev, ignore, threshold, threshold2):
 
 def _constructObjList(cktName, ckt, use_dev):
     objs = list()
-    for subCkt in ckt.subCkts:
-        objs.append(subCkt)
+    pure_passive = True
     for dev in ckt.devices:
         if dev.isNmos() or dev.isPmos():
-            if cktName not in use_dev:
+            pure_passive = False
+            break
+    if len(ckt.subCkts) > 0 or pure_passive or cktName in use_dev:
+        for subCkt in ckt.subCkts:
+            objs.append(subCkt)
+        for dev in ckt.devices:
+            if dev.isNmos() or dev.isPmos():
+                if cktName in use_dev:
+                    objs.append(dev)
+            else:
                 objs.append(dev)
-        else:
-            objs.append(dev)
     return objs
 
 def _computeMatching2(cktName, ckt, objs, threshold, match_ckt):
@@ -245,7 +254,7 @@ def computeMatching2(topCkt, use_dev, ignore, threshold):
         allPairs[cktName] = list()
 
         th = threshold
-        th = fitThreshold(len(ckt.allDevices), ckt.avg_indeg, ckt.avg_size, ckt.max_size)
+        # th = fitThreshold(len(ckt.allDevices), ckt.avg_indeg, ckt.avg_size, ckt.max_size)
         
         objs = _constructObjList(cktName, ckt, use_dev)
         p1 = _computeMatching2(cktName, ckt, objs, th, match_ckt)
@@ -311,69 +320,72 @@ def computeStatistics(res, ans):
         'MCC': MCC}
     return result
 
+def _computeAccuracy(cktName, ckt, use_dev, match_ckt, sym_ans):
+    res = []
+    ans = []
+    for level in range(ckt.max_level + 1):
+        if len(ckt.allSubCkts) > 0:
+            subCkts = ckt.allSubCkts_level[level]
+            for i in range(len(subCkts)):
+                ckt_i = subCkts[i]
+                for j in range(i + 1, len(subCkts)):
+                    ckt_j = subCkts[j]
+                    if ckt_i.parentCkt != ckt_j.parentCkt:
+                        # res.append(0)
+                        # ans.append(0)
+                        continue
+                    else:
+                        parName = ckt_i.parentCkt.name
+                        if ckt_i.name_suffix <= ckt_j.name_suffix:
+                            tar = (ckt_i.name_suffix, ckt_j.name_suffix)
+                        else:
+                            tar = (ckt_j.name_suffix, ckt_i.name_suffix)
+                        if parName in match_ckt[cktName] and tar in match_ckt[cktName][parName]:
+                            res.append(1)
+                        else:
+                            res.append(0)
+                        if parName in sym_ans[cktName] and tar in sym_ans[cktName][parName]:
+                            ans.append(1)
+                        else:
+                            ans.append(0)
+
+        devices = ckt.devices_level[level]
+        for i in range(len(devices)):
+            dev_i = devices[i]
+            if dev_i.isNmos() or dev_i.isPmos():
+                if cktName not in use_dev:
+                    continue
+            for j in range(i + 1, len(devices)):
+                dev_j = devices[j]
+                if dev_j.isNmos() or dev_j.isPmos():
+                    if cktName not in use_dev:
+                        continue
+                if dev_i.parentCkt != dev_j.parentCkt:
+                    # res.append(0)
+                    # ans.append(0)
+                    continue
+                else:
+                    parName = dev_i.parentCkt.name
+                    if dev_i.name_suffix <= dev_j.name_suffix:
+                        tar = (dev_i.name_suffix, dev_j.name_suffix)
+                    else:
+                        tar = (dev_j.name_suffix, dev_i.name_suffix)
+
+                    if parName in match_ckt[cktName] and tar in match_ckt[cktName][parName]:
+                        res.append(1)
+                    else:
+                        res.append(0)
+                    if parName in sym_ans[cktName] and tar in sym_ans[cktName][parName]:
+                        ans.append(1)
+                    else:
+                        ans.append(0)
+    return res, ans
+
 def computeAccuracy(topCkt, use_dev, match_ckt, sym_ans):
     result = dict()
     for cktName, ckt in topCkt.items():
         if cktName in match_ckt:
-            res = []
-            ans = []
-            for level in range(ckt.max_level + 1):
-                if len(ckt.allSubCkts) > 0:
-                    subCkts = ckt.allSubCkts_level[level]
-                    for i in range(len(subCkts)):
-                        ckt_i = subCkts[i]
-                        for j in range(i + 1, len(subCkts)):
-                            ckt_j = subCkts[j]
-                            if ckt_i.parentCkt != ckt_j.parentCkt:
-                                # res.append(0)
-                                # ans.append(0)
-                                continue
-                            else:
-                                parName = ckt_i.parentCkt.name
-                                if ckt_i.name_suffix <= ckt_j.name_suffix:
-                                    tar = (ckt_i.name_suffix, ckt_j.name_suffix)
-                                else:
-                                    tar = (ckt_j.name_suffix, ckt_i.name_suffix)
-                                if parName in match_ckt[cktName] and tar in match_ckt[cktName][parName]:
-                                    res.append(1)
-                                else:
-                                    res.append(0)
-                                if parName in sym_ans[cktName] and tar in sym_ans[cktName][parName]:
-                                    ans.append(1)
-                                else:
-                                    ans.append(0)
-
-                devices = ckt.devices_level[level]
-                for i in range(len(devices)):
-                    dev_i = devices[i]
-                    if dev_i.isNmos() or dev_i.isPmos():
-                        if cktName not in use_dev:
-                            continue
-                    for j in range(i + 1, len(devices)):
-                        dev_j = devices[j]
-                        if dev_j.isNmos() or dev_j.isPmos():
-                            if cktName not in use_dev:
-                                continue
-                        if dev_i.parentCkt != dev_j.parentCkt:
-                            # res.append(0)
-                            # ans.append(0)
-                            continue
-                        else:
-                            parName = dev_i.parentCkt.name
-                            if dev_i.name_suffix <= dev_j.name_suffix:
-                                tar = (dev_i.name_suffix, dev_j.name_suffix)
-                            else:
-                                tar = (dev_j.name_suffix, dev_i.name_suffix)
-
-                            if parName in match_ckt[cktName] and tar in match_ckt[cktName][parName]:
-                                res.append(1)
-                            else:
-                                res.append(0)
-                            if parName in sym_ans[cktName] and tar in sym_ans[cktName][parName]:
-                                ans.append(1)
-                            else:
-                                ans.append(0)
-            
+            res, ans = _computeAccuracy(cktName, ckt, use_dev, match_ckt, sym_ans)
             result[cktName] = computeStatistics(res, ans)
         
         # print(cktName, result[cktName]['true_pos'], result[cktName]['false_pos'], result[cktName]['true_neg'], result[cktName]['false_neg'])
@@ -383,7 +395,7 @@ def computeAccuracy(topCkt, use_dev, match_ckt, sym_ans):
 def computeAccuracyPair(topCkt, pairs, match_ckt, sym_ans):
     result = dict()
     for cktName, ckt in topCkt.items():
-        if cktName in pairs:
+        if cktName in pairs and cktName in match_ckt:
             res = []
             ans = []
             for pair in pairs[cktName]:
@@ -409,6 +421,9 @@ def computeAccuracyPair(topCkt, pairs, match_ckt, sym_ans):
                 else:
                     ans.append(0)
             result[cktName] = computeStatistics(res, ans)
+        # else:
+            # res, ans = _computeAccuracy(cktName, ckt, use_dev, match_ckt, sym_ans)
+            # result[cktName] = computeStatistics(res, ans)
 
     return result
 
@@ -486,11 +501,12 @@ def main():
             use_dev.add(cktName)
             # ignore.add(cktName)
     result = dict()
-    for th in list(np.linspace(1, 1, 1)):
+    for th in list(np.linspace(0.85, 1, 151)):
         print('Computing matching with threshold {}'.format(th))
-        match_ckt = computeMatching(topCkt, use_dev, ignore, th, th)
-        result[th] = computeAccuracyPair(topCkt, s3det_pairs, match_ckt, sym_ans)
-        
+        # match_ckt = computeMatching(topCkt, use_dev, ignore, th, th)
+        match_ckt, pairs = computeMatching2(topCkt, use_dev, ignore, th)
+        result[(th, th)] = computeAccuracyPair(topCkt, pairs, match_ckt, sym_ans)
+        # print(result[th]['2019_10_01_5t_OTA'])
         # result[th] = computeAccuracy(topCkt, use_dev, match_ckt, sym_ans)
         # for th2 in list(np.linspace(0.94, 1, 61)):
             # print('Computing matching with threshold {} {}'.format(th, th2))
@@ -499,12 +515,12 @@ def main():
             # result[(th, th2)] = computeAccuracy(topCkt, use_dev, match_ckt, sym_ans)
 
     # for cktName, ps in s3det_pairs.items():
-        # for p in ps:
-            # if p not in pairs[cktName]:
+        # for p in pairs[cktName]:
+            # if p not in ps:
                 # print(p)
 
-    # with open(para.load_model + '_pg10_res_newPair_dev.pickle', 'wb') as f:
-        # pickle.dump(result, f)
+    with open(para.load_model + '_pg10_res_dev.pickle', 'wb') as f:
+        pickle.dump(result, f)
     for th, res in result.items():
         print('Threshold {}'.format(th))
         for key, val in res.items():
@@ -520,7 +536,7 @@ def main():
     if para.s3det != None:
         sym_s3det = init_s3det(para)
         # res_s3det = computeAccuracy(topCkt, use_dev, sym_s3det, sym_ans)
-        res_s3det = computeAccuracyPair(topCkt, s3det_pairs, sym_s3det, sym_ans)
+        res_s3det = computeAccuracyPair(topCkt, pairs, sym_s3det, sym_ans)
         print('S3DET')
         for key, val in res_s3det.items():
             # print(val['true_pos'] + val['false_pos'] + val['true_neg'] + val['false_neg'])

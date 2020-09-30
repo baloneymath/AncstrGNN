@@ -31,7 +31,8 @@ BENCH=./benchmark
                 #--s3det_pair $BENCH/s3det/$1.pair \
                 #--load_model ./models/sage2_5_600 \
 
-time python3 main.py --netlist $BENCH/CTDSM_CORE_NEW.sp \
+time python3 main.py --netlist \
+                          $BENCH/CTDSM_CORE_NEW.sp \
                           $BENCH/ADC_CORE.sp \
                           $BENCH/CTDTDSM_V3.sp \
                           $BENCH/adc1.sp \
@@ -48,10 +49,11 @@ time python3 main.py --netlist $BENCH/CTDSM_CORE_NEW.sp \
                           $BENCH/yibo/netlist/Retiming_Latch_common.sp \
                           $BENCH/yibo/netlist/Telescopic_OTA_stacked_single_ended.sp \
                           $BENCH/yibo/netlist/myComparator_v3.sp \
+                          $BENCH/yibo/netlist/OTA_FF_2s_v3e.sp \
                           $BENCH/COMPARATOR_PRE_AMP.sp \
-                          $BENCH/OTA_FF_2s_v3e.sp \
                           $BENCH/Gm1_v5_Practice.sp \
-                --sym $BENCH/sym/CTDSM_CORE_NEW.sym \
+                --sym \
+                      $BENCH/sym/CTDSM_CORE_NEW.sym \
                       $BENCH/sym/ADC_CORE.sym \
                       $BENCH/sym/CTDTDSM_V3.sym \
                       $BENCH/sym/adc1.sym \
@@ -68,18 +70,21 @@ time python3 main.py --netlist $BENCH/CTDSM_CORE_NEW.sp \
                       $BENCH/yibo/sym2/Retiming_Latch_common.sym \
                       $BENCH/yibo/sym2/Telescopic_OTA_stacked_single_ended.sym \
                       $BENCH/yibo/sym2/myComparator_v3.sym \
+                      $BENCH/yibo/sym2/OTA_FF_2s_v3e.sym \
                       $BENCH/sym/COMPARATOR_PRE_AMP.sym \
                       $BENCH/sym/Gm1_v5_Practice.sym \
-                      $BENCH/sym/OTA_FF_2s_v3e.sym \
                 --s3det $BENCH/s3det/CTDSM_CORE_NEW.s3det \
                         $BENCH/s3det/ADC_CORE.s3det \
                         $BENCH/s3det/CTDTDSM_V3.s3det \
                         $BENCH/s3det/adc1.s3det \
                         $BENCH/s3det/adc2.s3det \
-                --load_model ./models/ggcn2_5_600_l0.974 \
                 --s3det_pair $BENCH/s3det/CTDSM_CORE_NEW.pair \
                              $BENCH/s3det/ADC_CORE.pair \
                              $BENCH/s3det/CTDTDSM_V3.pair \
                              $BENCH/s3det/adc1.pair \
                              $BENCH/s3det/adc2.pair \
+                --load_model ./models/ggcn2_20_1000_l0.90 \
+                #--load_model ./models/ggcn2_20_600_l0.99 \
                 #--save_model ./models/model \
+                #--load_model ./models/ggcn2_5_600_l0.974 \
+                #--load_model ./models/ggcn2_15_600_l1.01_devOnly \
