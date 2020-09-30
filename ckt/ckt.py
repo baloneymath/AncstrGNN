@@ -1,19 +1,22 @@
 
-clk_set = {"clk", "clksb", "clks_boost", "clkb", "clkbo"}
-vss_set = {"gnd", "vss", "vss_sub", "vrefn", "vrefnd", "avss", "dvss", "vss_d"}
-vdd_set = {"vdd", "vdd_and", "vdd_c", "vdd_comp", "vdd_gm", "vddd", "vdda", "veld", "avdd", "vrefp", "vrefnp", "avdd_sar", "vdd_ac", "dvdd", "vdd_int", "vddac", "vdd_d"}
+clk_set = ["clk", "clksb", "clks_boost", "clkb", "clkbo"]
+vss_set = ["gnd", "vss", "vss_sub", "vrefn", "vrefnd", "avss", "dvss", "vss_d"]
+vdd_set = ["vdd", "vdd_and", "vdd_c", "vdd_comp", "vdd_gm", "vddd", "vdda", "veld", "avdd", "vrefp", "vrefnp", "avdd_sar", "vdd_ac", "dvdd", "vdd_int", "vddac", "vdd_d"]
 
-# nmos_set = {"nmos", "nch", "nch_na", "nch_mac", "nch_lvt", "nch_lvt_mac", "nch_25_mac", "nch_na25_mac", "nch_hvt_mac", "nch_25ud18_mac"}
-# pmos_set = {"pmos", "pch", "pch_mac", "pch_lvt", "pch_lvt_mac", "pch_25_mac", "pch_na25_mac", "pch_hvt_mac", "nch_25ud18_mac"}
-nmos_set = {"nch", "nch_mac", "nch_lvt", "nch_lvt_mac", "nch_hvt_mac"}
-pmos_set = {"pch", "pch_mac", "pch_lvt", "pch_lvt_mac", "pch_hvt_mac"}
+# nmos_set = ["nmos", "nch", "nch_na", "nch_mac", "nch_lvt", "nch_lvt_mac", "nch_25_mac", "nch_na25_mac", "nch_hvt_mac", "nch_25ud18_mac"]
+# pmos_set = ["pmos", "pch", "pch_mac", "pch_lvt", "pch_lvt_mac", "pch_25_mac", "pch_na25_mac", "pch_hvt_mac", "nch_25ud18_mac"]
+nmos_set = ["nch", "nch_mac", "nch_lvt", "nch_lvt_mac", "nch_hvt_mac"]
+pmos_set = ["pch", "pch_mac", "pch_lvt", "pch_lvt_mac", "pch_hvt_mac"]
+# nmos_set = ["nch", "nch_mac", "nch_lvt", "nch_lvt_mac", "nch_hvt_mac", "nfet_lvt", "nfet", "nmos"]
+# pmos_set = ["pch", "pch_mac", "pch_lvt", "pch_lvt_mac", "pch_hvt_mac", "pfet_lvt", "pfet", "pmos"]
 
-# capacitor_set = {"cfmom", "cfmom_2t", "crtmom_2t", "crtmom"}
-# resistor_set = {"rppoly", "rppoly_m", "rppolywo_m", "rppolywo", "rppolyl"}
-capacitor_set = {"cfmom", "crtmom", "cfmom_2t"}
-resistor_set = {"rppolywo_m", "rppolywo"}
+# capacitor_set = ["cfmom", "cfmom_2t", "crtmom_2t", "crtmom"]
+# resistor_set = ["rppoly", "rppoly_m", "rppolywo_m", "rppolywo", "rppolyl"]
+capacitor_set = ["cfmom", "crtmom", "cfmom_2t"]
+resistor_set = ["rppolywo_m", "rppolywo"]
+# resistor_set = ["rppolywo_m", "rppolywo", "res"]
 
-three_term_set = {'cfmom', 'crtmom', 'rppolywo_m'}
+three_term_set = ['cfmom', 'crtmom', 'rppolywo_m']
 
 class CktObj:
     def __init__(self, name):
@@ -78,8 +81,10 @@ class SubCkt(object):
         self.level = level # hierarchy level
         self.idx = -1 # idx in Ckt.subCkts
         self.idx2 = -1 # idx in Ckt.allSubCkts
-        self.devices = [] # lowest level transistors
+        self.devices = []
         self.deviceName2Id = {}
+        self.allDevices = [] # lowest level transistors
+        self.allDeviceName2Id = {}
         self.subCkts = []
         self.subCktName2Id = {}
         # self.nets = {}
@@ -87,7 +92,7 @@ class SubCkt(object):
         self.parentCkt = None
         self.name_suffix = name.split('/')[-1]
     def get_device_by_name(self, name):
-        return self.devices[self.deviceName2Id[name]]
+        return self.allDevices[self.allDeviceName2Id[name]]
     def add_device(self, device):
         if device.name not in self.deviceName2Id.keys():
             self.deviceName2Id[device.name] = len(self.devices)
@@ -107,6 +112,8 @@ class Ckt(object):
         self.level = level
         self.nets = {}
 
+        self.devices = []
+
         self.allDevices = [] # all lowest level transistors
         self.allDeviceName2Id = {}
         
@@ -121,6 +128,7 @@ class Ckt(object):
 
         self.avg_indeg = 0
         self.avg_size = 0
+        self.max_size = 0
 
     def add_net(self, net):
         self.nets[net.name] = net

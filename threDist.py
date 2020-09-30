@@ -5,7 +5,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 def th2Idx(th):
-    return int(round((th - 0.9) * 1000))
+    return int(round((th - 0.94) * 1000))
 
 if __name__ == '__main__':
     res_file = sys.argv[1]
@@ -20,13 +20,14 @@ if __name__ == '__main__':
     MCC = dict()
 
     cktNames = result[(1, 1)].keys()
+    n = 61
     for name in cktNames:
-        precision[name] = np.zeros((101, 101))
-        recall[name] = np.zeros((101, 101))
-        accuracy[name] = np.zeros((101, 101))
-        FPR[name] = np.zeros((101, 101))
-        F1[name] = np.zeros((101, 101))
-        MCC[name] = np.zeros((101, 101))
+        precision[name] = np.zeros((n, n))
+        recall[name] = np.zeros((n, n))
+        accuracy[name] = np.zeros((n, n))
+        FPR[name] = np.zeros((n, n))
+        F1[name] = np.zeros((n, n))
+        MCC[name] = np.zeros((n, n))
 
     for (th1, th2), res in result.items():
         xIdx = th2Idx(th1)
@@ -39,14 +40,15 @@ if __name__ == '__main__':
             F1[cktName][xIdx][yIdx] = val['F1']
             MCC[cktName][xIdx][yIdx] = val['MCC']
 
-    cir = 'CTDTDSM_V3'
+    cir = sys.argv[2]
     # a, b = np.where(precision[cir] == precision[cir].max()), precision[cir].max()
     # a, b = np.where(recall[cir] == recall[cir].max()), recall[cir].max()
-    # a, b = np.where(accuracy[cir] == accuracy[cir].max()), accuracy[cir].max()
+    a, b = np.where(accuracy[cir] == accuracy[cir].max()), accuracy[cir].max()
     # a, b = np.where(FPR[cir] == FPR[cir].min()), FPR[cir].min()
-    a, b = np.where(F1[cir] == F1[cir].max()), F1[cir].max()
+    # a, b = np.where(F1[cir] == F1[cir].max()), F1[cir].max()
     # a, b = np.where(MCC[cir] == MCC[cir].max()), MCC[cir].max()
     print(np.transpose(a), b)
+    # print(accuracy[cir][th2Idx(0.95)][th2Idx(0.95)])
     
     # l = [i for i in list(np.linspace(0.9, 1, 101))]
     # ax = sns.heatmap(accuracy[cir], vmin=0.8, vmax=1, xticklabels=l, yticklabels=l, cmap="YlGnBu", annot=True, fmt=".3f")

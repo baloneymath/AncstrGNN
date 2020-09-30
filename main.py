@@ -52,7 +52,10 @@ def init_s3det_pairs(para):
         for line in pair_file:
             tokens = line.rstrip('\n').split(' ')
             assert len(tokens) == 2
-            pairs[name].append([tokens[0], tokens[1]])
+            if tokens[0] <= tokens[1]:
+                pairs[name].append([tokens[0], tokens[1]])
+            else:
+                pairs[name].append([tokens[1], tokens[0]])
         pair_file.close()
     return pairs
         
@@ -60,7 +63,7 @@ def init_s3det_pairs(para):
 def printCkt(subCkt, prefix, showDev=True, showPassiveOnly=True):
     print(prefix + subCkt.name_suffix + ' ' + subCkt.type + ' ' + str(subCkt.level))
     if showDev == True:
-        for dev in subCkt.devices:
+        for dev in subCkt.allDevices:
             if showPassiveOnly:
                 if dev.isPassive():
                     print('|  ' + prefix +  dev.name_suffix + ' ' + dev.type + ' ' + str(dev.level))
@@ -83,7 +86,7 @@ def embedSubCktFeature(topCkt, G_nx_dict):
             if subG.number_of_nodes() > 0 and subG.number_of_edges() > 0:
                 # print('Graph nodes {} edges {}'.format(subG.number_of_nodes(), subG.number_of_edges()))
                 feats = []
-                for dev in subCkt.devices:
+                for dev in subCkt.allDevices:
                     feats.append(dev.feat) 
                 simpG = nx.DiGraph()
                 for n, d in subG.nodes(data=True):
@@ -105,7 +108,7 @@ def embedSubCktFeature(topCkt, G_nx_dict):
                 pg = nx.pagerank(simpG, alpha=0.85)
                 sorted_pg = sorted(pg.items(), key=lambda x: x[1], reverse=True)
                 
-                num_cat = min(20, len(pg))
+                num_cat = min(10, len(pg))
                 # num_cat = len(pg)
                 # feat_cat = torch.mean(torch.stack([ckt.allDevices[sorted_pg[i][0]].feat for i in range(num_cat)]), dim=0)
                 feat_cat = torch.cat([ckt.allDevices[sorted_pg[i][0]].feat for i in range(num_cat)])
@@ -124,13 +127,13 @@ def embedSubCktFeature(topCkt, G_nx_dict):
             assert subCkt.feat != None
     return
 
-def fitThreshold(feat_len, ckt_size, avg_deg, avg_size):
+def fitThreshold(ckt_size, avg_deg, avg_size, max_size):
+    return min(1., 0.95 + 0.6 / (max_size + 1e-8))
     # return min(1, 0.95 + 2e-3 * avg_size)
-    return min(1, 0.953 + 2.5e-3 * avg_deg)
-    return max(1.0026 - 1.35e-5 * ckt_size, 0.95)
-    return 0.986
-    return max(1 - 3e-7 * ckt_size , 0.9)
-    return max(0.999 - 1.8e-4 * feat_len, 0.95)
+    # return min(1, 0.953 + 2.5e-3 * avg_deg)
+    # return max(1.0026 - 1.35e-5 * ckt_size, 0.95)
+    # return 0.986
+    # return max(1 - 3e-7 * ckt_size , 0.9)
 
 def computeMatching(topCkt, use_dev, ignore, threshold, threshold2):
     match_ckt = dict()
@@ -140,27 +143,31 @@ def computeMatching(topCkt, use_dev, ignore, threshold, threshold2):
         match_ckt[cktName] = dict()
         for level in range(ckt.max_level + 1):
             # subCkt matching
-            subCkts = ckt.allSubCkts_level[level]
-            for i in range(len(subCkts)):
-                ckt_i = subCkts[i]
-                for j in range(i + 1, len(subCkts)):
-                    ckt_j = subCkts[j]
-                    if ckt_i != ckt_j and ckt_i.parentCkt == ckt_j.parentCkt:
-                        feat_len_i = ckt_i.feat.shape[0]
-                        feat_len_j = ckt_j.feat.shape[0]
-                        if feat_len_i == feat_len_j:
-                            # print(ckt_i.name, ckt_j.name, sim.item())
-                            cos = nn.CosineSimilarity(dim=0, eps=1e-8)
-                            sim = cos(ckt_i.feat, ckt_j.feat)
-                            val = sim.item()
-                            # print(ckt_i.name, ckt_j.name, val)
+            if len(ckt.allSubCkts) > 0:
+                subCkts = ckt.allSubCkts_level[level]
+                for i in range(len(subCkts)):
+                    ckt_i = subCkts[i]
+                    for j in range(i + 1, len(subCkts)):
+                        ckt_j = subCkts[j]
+                        if ckt_i != ckt_j and ckt_i.parentCkt == ckt_j.parentCkt:
+                            feat_len_i = ckt_i.feat.shape[0]
+                            feat_len_j = ckt_j.feat.shape[0]
+                            if feat_len_i == feat_len_j:
+                                # print(ckt_i.name, ckt_j.name, sim.item())
+                                cos = nn.CosineSimilarity(dim=0, eps=1e-8)
+                                sim = cos(ckt_i.feat, ckt_j.feat)
+                                val = sim.item()
+                                # print(ckt_i.name, ckt_j.name, val)
 
-                            if val >= fitThreshold(feat_len_i, len(ckt.allDevices), ckt.avg_indeg, ckt.avg_size):
-                            # if val >= threshold:
-                                parentCkt = ckt_i.parentCkt
-                                if parentCkt.name not in match_ckt[cktName]:
-                                    match_ckt[cktName][parentCkt.name] = list()
-                                match_ckt[cktName][parentCkt.name].append({ckt_i.name_suffix, ckt_j.name_suffix})
+                                if val >= fitThreshold(len(ckt.allDevices), ckt.avg_indeg, ckt.avg_size, ckt.max_size):
+                                # if val >= threshold:
+                                    parentCkt = ckt_i.parentCkt
+                                    if parentCkt.name not in match_ckt[cktName]:
+                                        match_ckt[cktName][parentCkt.name] = list()
+                                    if ckt_i.name_suffix <= ckt_j.name_suffix:
+                                        match_ckt[cktName][parentCkt.name].append((ckt_i.name_suffix, ckt_j.name_suffix))
+                                    else:
+                                        match_ckt[cktName][parentCkt.name].append((ckt_j.name_suffix, ckt_i.name_suffix))
             # device matching
             devices = ckt.devices_level[level]
             for i in range(len(devices)):
@@ -175,18 +182,83 @@ def computeMatching(topCkt, use_dev, ignore, threshold, threshold2):
                             continue
                     if dev_i != dev_j and dev_i.parentCkt == dev_j.parentCkt:
                         assert dev_i.feat.shape[0] == dev_j.feat.shape[0]
-                        cos == nn.CosineSimilarity(dim=0, eps=1e-8)
+                        cos = nn.CosineSimilarity(dim=0, eps=1e-8)
                         sim = cos(dev_i.feat, dev_j.feat)
                         val = sim.item()
 
-                        if val >= fitThreshold(dev_i.feat.shape[0], len(ckt.allDevices), ckt.avg_indeg, ckt.avg_size):
+                        if val >= fitThreshold(len(ckt.allDevices), ckt.avg_indeg, ckt.avg_size, ckt.max_size):
                         # if val >= threshold2:
                             parentCkt = dev_i.parentCkt
                             if parentCkt.name not in match_ckt[cktName]:
                                 match_ckt[cktName][parentCkt.name] = list()
-                            match_ckt[cktName][parentCkt.name].append({dev_i.name_suffix, dev_j.name_suffix})
+                            if dev_i.name_suffix <= dev_j.name_suffix:
+                                match_ckt[cktName][parentCkt.name].append((dev_i.name_suffix, dev_j.name_suffix))
+                            else:
+                                match_ckt[cktName][parentCkt.name].append((dev_j.name_suffix, dev_i.name_suffix))
+
 
     return match_ckt
+
+def _constructObjList(cktName, ckt, use_dev):
+    objs = list()
+    for subCkt in ckt.subCkts:
+        objs.append(subCkt)
+    for dev in ckt.devices:
+        if dev.isNmos() or dev.isPmos():
+            if cktName not in use_dev:
+                objs.append(dev)
+        else:
+            objs.append(dev)
+    return objs
+
+def _computeMatching2(cktName, ckt, objs, threshold, match_ckt):
+    pairs = list()
+    for i in range(len(objs) - 1):
+        obj_i = objs[i]
+        for j in range(i + 1, len(objs)):
+            obj_j = objs[j]
+            if obj_i.name <= obj_j.name:
+                pairs.append([obj_i.name, obj_j.name])
+            else:
+                pairs.append([obj_j.name, obj_i.name])
+            
+            if obj_i.feat.shape[0] == obj_j.feat.shape[0]:
+                cos = nn.CosineSimilarity(dim=0, eps=1e-8)
+                sim = cos(obj_i.feat, obj_j.feat)
+                val = sim.item()
+                if val >= threshold:
+                    if ckt.name not in match_ckt[cktName]:
+                        match_ckt[cktName][ckt.name] = list()
+                    if obj_i.name_suffix <= obj_j.name_suffix:
+                        match_ckt[cktName][ckt.name].append((obj_i.name_suffix, obj_j.name_suffix))
+                    else:
+                        match_ckt[cktName][ckt.name].append((obj_j.name_suffix, obj_i.name_suffix))
+    return pairs
+
+def computeMatching2(topCkt, use_dev, ignore, threshold):
+    match_ckt = dict()
+    allPairs = dict()
+    for cktName, ckt in topCkt.items():
+        if cktName in ignore:
+            continue
+        match_ckt[cktName] = dict()
+        allPairs[cktName] = list()
+
+        th = threshold
+        th = fitThreshold(len(ckt.allDevices), ckt.avg_indeg, ckt.avg_size, ckt.max_size)
+        
+        objs = _constructObjList(cktName, ckt, use_dev)
+        p1 = _computeMatching2(cktName, ckt, objs, th, match_ckt)
+        allPairs[cktName].extend(p1)
+        for subCkt in ckt.allSubCkts:
+            objs = _constructObjList(cktName, subCkt, use_dev)
+            p2 = _computeMatching2(cktName, subCkt, objs, th, match_ckt)
+            allPairs[cktName].extend(p2)
+        # print(cktName, len(allPairs[cktName]))
+
+    return match_ckt, allPairs
+                    
+
 
 def computeStatistics(res, ans):
     assert len(res) == len(ans)
@@ -246,26 +318,30 @@ def computeAccuracy(topCkt, use_dev, match_ckt, sym_ans):
             res = []
             ans = []
             for level in range(ckt.max_level + 1):
-                subCkts = ckt.allSubCkts_level[level]
-                for i in range(len(subCkts)):
-                    ckt_i = subCkts[i]
-                    for j in range(i + 1, len(subCkts)):
-                        ckt_j = subCkts[j]
-                        if ckt_i.parentCkt != ckt_j.parentCkt:
-                            # res.append(0)
-                            # ans.append(0)
-                            continue
-                        else:
-                            parName = ckt_i.parentCkt.name
-                            tar = {ckt_i.name_suffix, ckt_j.name_suffix}
-                            if parName in match_ckt[cktName] and tar in match_ckt[cktName][parName]:
-                                res.append(1)
+                if len(ckt.allSubCkts) > 0:
+                    subCkts = ckt.allSubCkts_level[level]
+                    for i in range(len(subCkts)):
+                        ckt_i = subCkts[i]
+                        for j in range(i + 1, len(subCkts)):
+                            ckt_j = subCkts[j]
+                            if ckt_i.parentCkt != ckt_j.parentCkt:
+                                # res.append(0)
+                                # ans.append(0)
+                                continue
                             else:
-                                res.append(0)
-                            if parName in sym_ans[cktName] and tar in sym_ans[cktName][parName]:
-                                ans.append(1)
-                            else:
-                                ans.append(0)
+                                parName = ckt_i.parentCkt.name
+                                if ckt_i.name_suffix <= ckt_j.name_suffix:
+                                    tar = (ckt_i.name_suffix, ckt_j.name_suffix)
+                                else:
+                                    tar = (ckt_j.name_suffix, ckt_i.name_suffix)
+                                if parName in match_ckt[cktName] and tar in match_ckt[cktName][parName]:
+                                    res.append(1)
+                                else:
+                                    res.append(0)
+                                if parName in sym_ans[cktName] and tar in sym_ans[cktName][parName]:
+                                    ans.append(1)
+                                else:
+                                    ans.append(0)
 
                 devices = ckt.devices_level[level]
                 for i in range(len(devices)):
@@ -284,7 +360,11 @@ def computeAccuracy(topCkt, use_dev, match_ckt, sym_ans):
                             continue
                         else:
                             parName = dev_i.parentCkt.name
-                            tar = {dev_i.name_suffix, dev_j.name_suffix}
+                            if dev_i.name_suffix <= dev_j.name_suffix:
+                                tar = (dev_i.name_suffix, dev_j.name_suffix)
+                            else:
+                                tar = (dev_j.name_suffix, dev_i.name_suffix)
+
                             if parName in match_ckt[cktName] and tar in match_ckt[cktName][parName]:
                                 res.append(1)
                             else:
@@ -300,7 +380,7 @@ def computeAccuracy(topCkt, use_dev, match_ckt, sym_ans):
     return result
 
 
-def computeAccuracyS3det(topCkt, pairs, match_ckt, sym_ans):
+def computeAccuracyPair(topCkt, pairs, match_ckt, sym_ans):
     result = dict()
     for cktName, ckt in topCkt.items():
         if cktName in pairs:
@@ -315,7 +395,10 @@ def computeAccuracyS3det(topCkt, pairs, match_ckt, sym_ans):
                 # print(parName_i)
                 assert parName_i == parName_j
                 
-                tar = {name_i_suffix, name_j_suffix}
+                if name_i_suffix <= name_j_suffix:
+                    tar = (name_i_suffix, name_j_suffix)
+                else:
+                    tar = (name_j_suffix, name_i_suffix)
                 # print(tar)
                 if parName_i in match_ckt[cktName] and tar in match_ckt[cktName][parName_i]:
                     res.append(1)
@@ -348,17 +431,27 @@ def main():
         ckt = topCkt[cktName]
         G_nx = G_nx_dict[cktName]
         
-        sizes = [len(c.devices) for c in ckt.allSubCkts]
+        sizes = [len(c.subCkts) for c in ckt.allSubCkts]
+        sizes.append(len(ckt.subCkts))
         avg_size = sum(sizes) / len(sizes)
+        max_size = max(sizes)
 
         G_nx_top = G_nx[ckt.name]
         G_deg = [d for _, d in G_nx_top.in_degree]
         avg_deg = sum(G_deg) / len(G_deg)
-        print('{}: graph nodes {} edges {} avg_deg {} avg_size {}'.format(cktName, G_nx_top.number_of_nodes(), G_nx_top.number_of_edges(), avg_deg, avg_size))
         # nx.draw_networkx(G_nx)
         # plt.show()
         ckt.avg_indeg = int(avg_deg)
         ckt.avg_size = int(avg_size)
+        ckt.max_size = int(max_size)
+        print('{}: graph nodes {} edges {} avg_deg {} avg_size {} max_size {}'.format(
+            cktName,
+            G_nx_top.number_of_nodes(),
+            G_nx_top.number_of_edges(),
+            ckt.avg_indeg,
+            ckt.avg_size,
+            ckt.max_size
+        ))
         G_dgl_dict[cktName] = initFeature(G_nx_top, ckt)
 
     if para.load_model != '':
@@ -368,14 +461,14 @@ def main():
         if para.save_model != '':
             torch.save(model, para.save_model)
     # print(model.state_dict())
-
     node_embeddings = inference(G_dgl_dict, model)
     # for cktName, g in G_dgl_dict.items():
         # node_embeddings[cktName] = g.ndata['feat']
     setTrainedDevFeature(topCkt, node_embeddings)
     embedSubCktFeature(topCkt, G_nx_dict)
 
-    print(node_embeddings['ADC_CORE'][0])
+    # print(node_embeddings['CTDSM_CORE_NEW'][0])
+    # exit(0)
 
     #####################################################
     # Compute results
@@ -383,50 +476,61 @@ def main():
     sym_ans = init_sym(para)
     s3det_pairs = init_s3det_pairs(para)
 
-    use_dev = {'adc1', 'adc2'}
-    # use_dev = set()
-    ignore  = {'adc1', 'adc2'}
+    # use_dev = {'adc1', 'adc2'}
+    # ignore  = {'adc1', 'adc2'}
+    use_dev = set()
+    ignore  = set()
+    for cktName in netlist.keys():
+        ckt = topCkt[cktName]
+        if len(ckt.allSubCkts) == 0:
+            use_dev.add(cktName)
+            # ignore.add(cktName)
     result = dict()
     for th in list(np.linspace(1, 1, 1)):
         print('Computing matching with threshold {}'.format(th))
         match_ckt = computeMatching(topCkt, use_dev, ignore, th, th)
-        result[th] = computeAccuracyS3det(topCkt, s3det_pairs, match_ckt, sym_ans)
-        # for th2 in list(np.linspace(0.9, 1, 101)):
+        result[th] = computeAccuracyPair(topCkt, s3det_pairs, match_ckt, sym_ans)
+        
+        # result[th] = computeAccuracy(topCkt, use_dev, match_ckt, sym_ans)
+        # for th2 in list(np.linspace(0.94, 1, 61)):
             # print('Computing matching with threshold {} {}'.format(th, th2))
-            # match_ckt = computeMatching(topCkt, use_dev, ignore, th, th2)
+            # match_ckt = computeMatching(topCkt, use_dev, ignore, th, th)
             # result[(th, th2)] = computeAccuracyS3det(topCkt, s3det_pairs, match_ckt, sym_ans)
-            # result[th] = computeAccuracy(topCkt, use_dev, match_ckt, sym_ans)
+            # result[(th, th2)] = computeAccuracy(topCkt, use_dev, match_ckt, sym_ans)
 
-    # with open(para.load_model + '_res.pickle', 'wb') as f:
+    # for cktName, ps in s3det_pairs.items():
+        # for p in ps:
+            # if p not in pairs[cktName]:
+                # print(p)
+
+    # with open(para.load_model + '_pg10_res_newPair_dev.pickle', 'wb') as f:
         # pickle.dump(result, f)
     for th, res in result.items():
         print('Threshold {}'.format(th))
         for key, val in res.items():
-            print('  {:<15} precision: {:<20} recall: {:<20} accuracy: {:<20} FPR: {:<22} F1: {:<22} MCC: {:<22}'.format(
+            print('  {:<35} precision: {:<20} recall: {:<20} accuracy: {:<20} FPR: {:<22} F1: {:<22}'.format(
                 key,
                 val['precision'],
                 val['recall'],
                 val['accuracy'],
                 val['FPR'],
-                val['F1'],
-                val['MCC']))
+                val['F1']))
         print()
 
     if para.s3det != None:
         sym_s3det = init_s3det(para)
         # res_s3det = computeAccuracy(topCkt, use_dev, sym_s3det, sym_ans)
-        res_s3det = computeAccuracyS3det(topCkt, s3det_pairs, sym_s3det, sym_ans)
+        res_s3det = computeAccuracyPair(topCkt, s3det_pairs, sym_s3det, sym_ans)
         print('S3DET')
         for key, val in res_s3det.items():
             # print(val['true_pos'] + val['false_pos'] + val['true_neg'] + val['false_neg'])
-            print('  {:<15} precision: {:<20} recall: {:<20} accuracy: {:<20} FPR: {:<22} F1: {:<22} MCC: {:<22}'.format(
+            print('  {:<35} precision: {:<20} recall: {:<20} accuracy: {:<20} FPR: {:<22} F1: {:<22}'.format(
                 key,
                 val['precision'],
                 val['recall'],
                 val['accuracy'],
                 val['FPR'],
-                val['F1'],
-                val['MCC']))
+                val['F1']))
         print()
 
 

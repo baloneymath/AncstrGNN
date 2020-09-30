@@ -133,13 +133,15 @@ def build_graph(netlist):
     for subCkt in topCkt.allSubCkts:
         allDevs = []
         flattenCkt(subCkt, allDevs)
-        subCkt.devices = allDevs
+        subCkt.allDevices = allDevs
         for i in range(len(allDevs)):
             dev = allDevs[i]
-            subCkt.deviceName2Id[dev.name] = i
+            subCkt.allDeviceName2Id[dev.name] = i
     # set level for all devices
     for dev in topCkt.allDevices:
         G.add_node(dev.idx, device=dev)
+        if dev.parentCkt == topCkt:
+            topCkt.devices.append(dev)
     
     # build edges (nets)
     for ckt in netlist:
@@ -178,13 +180,13 @@ def build_graph(netlist):
             # if net.name in vss_set or net.name in vdd_set:
                 # isPower = True
             # subNet = Net(net.name + '/' + subCkt.name, isPower)
-            # for dev in subCkt.devices:
+            # for dev in subCkt.allDevices:
                 # for pin in dev.pins:
                     # if pin in net.pins.values():
                         # subNet.add_pin(pin)
             # if len(subNet.pins) > 0:
                 # subCkt.add_net(subNet)
-        # for dev in subCkt.devices:
+        # for dev in subCkt.allDevices:
             # for pin in dev.pins:
                 # if pin.net not in subCkt.nets.values():
                     # subCkt.add_net(pin.net)
@@ -214,7 +216,7 @@ def build_graph(netlist):
     # build subCkt graph
     for subCkt in topCkt.allSubCkts:
         subG = nx.MultiDiGraph()
-        for dev in subCkt.devices:
+        for dev in subCkt.allDevices:
             subG.add_node(dev.idx, device=dev)
         # for net in topCkt.nets.values():
             # if net.name == 'DAC_SWITCHES/net91':
@@ -231,9 +233,9 @@ def build_graph(netlist):
                             continue
                         if i != j:
                             dev1, dev2 = pins[i].device, pins[j].device
-                            if dev1 in subCkt.devices and dev2 in subCkt.devices:
-                                # assert dev1 in subCkt.devices
-                                # assert dev2 in subCkt.devices
+                            if dev1 in subCkt.allDevices and dev2 in subCkt.allDevices:
+                                # assert dev1 in subCkt.allDevices
+                                # assert dev2 in subCkt.allDevices
                                 if dev1.idx != dev2.idx:
                                     in_type = pins[j].type
                                     subG.add_edge(dev1.idx, dev2.idx, in_type=in_type)
@@ -241,7 +243,7 @@ def build_graph(netlist):
         # print(subCkt.name, subCkt.type, subG.number_of_edges())
             
 
-        # print(subCkt.name + ' ' + str(subCkt.level) + ' ' + str(len(subCkt.devices)))
+        # print(subCkt.name + ' ' + str(subCkt.level) + ' ' + str(len(subCkt.allDevices)))
     # exit(0)
     return G_dict, topCkt
     

@@ -25,10 +25,17 @@ def handle_sym(token):
         sym[subckt['name']] = list()
         for pairs in subckt['group']:
             if len(pairs) <= 2:
-                sym[subckt['name']].append(set(pairs))
+                assert len(pairs) == 2
+                if pairs[0] <= pairs[1]:
+                    sym[subckt['name']].append((pairs[0], pairs[1]))
+                else:
+                    sym[subckt['name']].append((pairs[1], pairs[0]))
             else:
                 for i in range(len(pairs)-1):
                     for j in range(i+1, len(pairs)):
-                        sym[subckt['name']].append(set([pairs[i], pairs[j]]))
+                        if pairs[i] <= pairs[j]:
+                            sym[subckt['name']].append((pairs[i], pairs[j]))
+                        else:
+                            sym[subckt['name']].append((pairs[j], pairs[i]))
     return sym
 
