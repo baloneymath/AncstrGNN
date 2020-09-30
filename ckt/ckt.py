@@ -1,3 +1,5 @@
+import ConstGenPy
+import os
 
 clk_set = ["clk", "clksb", "clks_boost", "clkb", "clkbo"]
 vss_set = ["gnd", "vss", "vss_sub", "vrefn", "vrefnd", "avss", "dvss", "vss_d"]
@@ -172,3 +174,65 @@ class Ckt(object):
             self.allSubCkts_level[subCkt.level].append(subCkt)
     def get_subCkt_by_name(self, name):
         return self.allSubCkts[self.allSubCktName2Id[name]]
+
+class Sfa(object):
+    def __init__(self, ckt):
+        self.ckt = ckt
+    def run(self):
+        constGen = ConstGenPy.ConstGen()
+        mosPinType = [ConstGenPy.D, ConstGenPy.G, ConstGenPy.S, ConstGenPy.B]
+        capPinType = [ConstGenPy.THIS, ConstGenPy.THAT, ConstGenPy.OTHER]
+        netIdx = 0
+        netNameToIdx = {}
+        for net in self.ckt.nets.values():
+            idx = constGen.addNet(net.name, netIdx)
+            netNameToIdx[net.name] = netIdx
+            assert netIdx == idx, "Net index not matched!"
+            netIdx += 1
+        for nodeIdx in range(len(self.ckt.devices)):
+            device = self.ckt.devices[nodeIdx]
+            device_name = device.name.split("/")[-1]
+            if device.isNmos():
+                idx = constGen.addInst(device_name, ConstGenPy.Nch, float(device.param["w"]), float(device.param["l"]), 1.0)
+                pinTypeArray = mosPinType
+            elif device.isPmos():
+                idx = constGen.addInst(device_name, ConstGenPy.Pch, float(device.param["w"]), float(device.param["l"]), 1.0)
+                pinTypeArray = mosPinType
+            elif device.isCap():
+                if dev.type == 'crtmom':
+                    idx = constGen.addInst(device_name, ConstGen.Cap, float(device.param["w"]), float(device.param["s"]), float(device.param["nv"]) * float(device.param["nh"]))
+                elif dev.type == 'cfmom' or 'cfmom_2t':
+                    idx = constGen.addInst(device_name, ConstGen.Cap, float(device.param["w"]), float(device.param["lr"]), float(device.param["nr"]))
+                pinTypeArray = capPinType
+            elif device.isRes():
+                if devive.type == 'rppolywo_m':
+                    numSeg = 1
+                    if "para" in device.param["para"]:
+                        numSeg = device.param["para"]
+                    if "series" in device.param["series"]:
+                        numSeg = device.param["series"]
+                    idx = constGen.addInst(device_name, ConstGen.Res, float(device.param["wr"]), float(device.param["lr"]), numSeg)
+                elif dev.type == 'rppolywo':
+                    numSeg = 1
+                    if "para" in device.param["para"]:
+                        numSeg = device.param["para"]
+                    if "series" in device.param["series"]:
+                        numSeg = device.param["series"]
+                    idx = constGen.addInst(device_name, ConstGen.Res, float(device.param["w"]), float(device.param["l"]), numSeg)
+                pinTypeArray = capPinType
+            else:
+                assert False, "Device not supported %s" % instNode.name
+            for pin_idx in range(len(device.pins)):
+                pin = device.pins[pin_idx]
+                netIdx = netNameToIdx[pin.net.name]
+                constGen.addInstPin(idx, netIdx, pinTypeArray[pin_idx])
+            assert nodeIdx == idx
+        symfilename = "./sfa/"+self.ckt.name
+        constGen.dumpResult(symfilename)
+        symfilename = symfilename + ".sfasym"
+
+        with open(symfilename, 'r') as of:
+            with open("temp.txt", 'w') as of2:
+                of2.write(self.ckt.name + "\n")
+                of2.write(of.read())
+        os.rename ("temp.txt", symfilename)

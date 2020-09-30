@@ -2,6 +2,7 @@
 from util.config import params_setup, logging_setup
 from netlist import netlist, parse_netlist
 from sym import parse_sym
+from ckt.ckt import Sfa
 from ckt.graph import build_graph
 from train.train import *
 
@@ -468,6 +469,10 @@ def main():
             ckt.max_size
         ))
         G_dgl_dict[cktName] = initFeature(G_nx_top, ckt)
+
+    sfa = Sfa(topCkt["myComparator_v3"])
+    sfa.run()
+    exit(0)
 
     if para.load_model != '':
         model = torch.load(para.load_model)
