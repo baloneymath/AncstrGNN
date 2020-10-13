@@ -18,6 +18,10 @@ if __name__ == '__main__':
     FPR = dict()
     F1 = dict()
     MCC = dict()
+    TP = dict()
+    FP = dict()
+    TN = dict()
+    FN = dict()
 
     cktNames = result[(1, 1)].keys()
     n = 151
@@ -28,6 +32,10 @@ if __name__ == '__main__':
         FPR[name] = np.zeros((n, n))
         F1[name] = np.zeros((n, n))
         MCC[name] = np.zeros((n, n))
+        TP[name] = np.zeros((n, n))
+        FP[name] = np.zeros((n, n))
+        TN[name] = np.zeros((n, n))
+        FN[name] = np.zeros((n, n))
 
     for (th1, th2), res in result.items():
         xIdx = th2Idx(th1)
@@ -39,6 +47,11 @@ if __name__ == '__main__':
             FPR[cktName][xIdx][yIdx] = val['FPR']
             F1[cktName][xIdx][yIdx] = val['F1']
             MCC[cktName][xIdx][yIdx] = val['MCC']
+            TP[cktName][xIdx][yIdx] = val['true_pos']
+            FP[cktName][xIdx][yIdx] = val['false_pos']
+            TN[cktName][xIdx][yIdx] = val['true_neg']
+            FN[cktName][xIdx][yIdx] = val['false_neg']
+
 
     cir = sys.argv[2]
     # a, b = np.where(precision[cir] == precision[cir].max()), precision[cir].max()
@@ -54,6 +67,12 @@ if __name__ == '__main__':
     print('Accuracy', accuracy[cir][a[0][0]][a[0][1]])
     print('FPR', FPR[cir][a[0][0]][a[0][1]])
     print('F1', F1[cir][a[0][0]][a[0][1]])
+    print('TP: {} FP: {} TN: {} FN: {}'.format(
+          TP[cir][a[0][0]][a[0][1]],
+          FP[cir][a[0][0]][a[0][1]],
+          TN[cir][a[0][0]][a[0][1]],
+          FN[cir][a[0][0]][a[0][1]]
+          ))
     # print(accuracy[cir][th2Idx(0.95)][th2Idx(0.95)])
     
     # l = [i for i in list(np.linspace(0.9, 1, 101))]

@@ -21,6 +21,8 @@ class TrashNet(nn.Module):
         super(TrashNet, self).__init__()
         # self.sage = SAGEConv(in_feats=in_feats, out_feats=in_feats, aggregator_type='mean')
         self.ggcn = GatedGraphConv(in_feats=in_feats, out_feats=in_feats, n_steps=1, n_etypes=4)
+        # self.ggcn = GatedGraphConv(in_feats=in_feats, out_feats=64, n_steps=1, n_etypes=4)
+        # self.ggcn2 = GatedGraphConv(in_feats=64, out_feats=64, n_steps=1, n_etypes=4)
         self.relu = nn.ReLU()
 
         # self.dropout = nn.Dropout(p=0.5)

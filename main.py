@@ -1,8 +1,7 @@
-
 from util.config import params_setup, logging_setup
 from netlist import netlist, parse_netlist
 from sym import parse_sym
-from ckt.ckt import Sfa
+# from ckt.ckt import Sfa
 from ckt.graph import build_graph
 from train.train import *
 
@@ -13,6 +12,7 @@ import dgl
 import numpy as np
 
 import pickle
+import time
 
 def init_netlist(para):
     netlist = dict()
@@ -24,24 +24,29 @@ def init_netlist(para):
         netlist[name] = parse_netlist.parse_hspice(netlist_str)
     return netlist
 
-def init_sym(para):
+def init_sym(para, t):
     sym = dict()
-    for n in para.sym:
-        sym_file = open(n, 'r')
-        sym_str = sym_file.read()
-        sym_file.close()
-        name = n.split('/')[-1][0:-4]
-        sym[name] = parse_sym.parse(sym_str)
-    return sym
-
-def init_s3det(para):
-    sym = dict()
-    for n in para.s3det:
-        sym_file = open(n, 'r')
-        sym_str = sym_file.read()
-        sym_file.close()
-        name = n.split('/')[-1][0:-6]
-        sym[name] = parse_sym.parse(sym_str)
+    if t == 'sym':
+        for n in para.sym:
+            sym_file = open(n, 'r')
+            sym_str = sym_file.read()
+            sym_file.close()
+            name = n.split('/')[-1][0:-4]
+            sym[name] = parse_sym.parse(sym_str)
+    elif t == 's3det':
+        for n in para.s3det:
+            sym_file = open(n, 'r')
+            sym_str = sym_file.read()
+            sym_file.close()
+            name = n.split('/')[-1][0:-10]
+            sym[name] = parse_sym.parse(sym_str)
+    elif t == 'sfa':
+        for n in para.sfa:
+            sym_file = open(n, 'r')
+            sym_str = sym_file.read()
+            sym_file.close()
+            name = n.split('/')[-1][0:-4]
+            sym[name] = parse_sym.parse(sym_str)
     return sym
 
 def init_s3det_pairs(para):
@@ -130,9 +135,9 @@ def embedSubCktFeature(topCkt, G_nx_dict):
 
 def fitThreshold(ckt_size, avg_deg, avg_size, max_size):
     if max_size > 0:
-        return min(1., 0.95 + 0.6 / (max_size + 1e-8))
+        return min(0.99999, 0.95 + 0.95 / (1 + max_size))
     else:
-        return 0.99
+        return 0.996
     # return min(1, 0.95 + 2e-3 * avg_size)
     # return min(1, 0.953 + 2.5e-3 * avg_deg)
     # return max(1.0026 - 1.35e-5 * ckt_size, 0.95)
@@ -227,6 +232,10 @@ def _computeMatching2(cktName, ckt, objs, threshold, match_ckt):
         obj_i = objs[i]
         for j in range(i + 1, len(objs)):
             obj_j = objs[j]
+            if len(ckt.subCkts) == 0 and obj_i.type != obj_j.type:
+                continue
+            if obj_i.isDev != obj_j.isDev:
+                continue
             if obj_i.name <= obj_j.name:
                 pairs.append([obj_i.name, obj_j.name])
             else:
@@ -255,8 +264,8 @@ def computeMatching2(topCkt, use_dev, ignore, threshold):
         allPairs[cktName] = list()
 
         th = threshold
-        # th = fitThreshold(len(ckt.allDevices), ckt.avg_indeg, ckt.avg_size, ckt.max_size)
-        
+        th = fitThreshold(len(ckt.allDevices), ckt.avg_indeg, ckt.avg_size, ckt.max_size)
+
         objs = _constructObjList(cktName, ckt, use_dev)
         p1 = _computeMatching2(cktName, ckt, objs, th, match_ckt)
         allPairs[cktName].extend(p1)
@@ -385,7 +394,7 @@ def _computeAccuracy(cktName, ckt, use_dev, match_ckt, sym_ans):
 def computeAccuracy(topCkt, use_dev, match_ckt, sym_ans):
     result = dict()
     for cktName, ckt in topCkt.items():
-        if cktName in match_ckt:
+        if cktName in sym_ans:
             res, ans = _computeAccuracy(cktName, ckt, use_dev, match_ckt, sym_ans)
             result[cktName] = computeStatistics(res, ans)
         
@@ -396,7 +405,7 @@ def computeAccuracy(topCkt, use_dev, match_ckt, sym_ans):
 def computeAccuracyPair(topCkt, pairs, match_ckt, sym_ans):
     result = dict()
     for cktName, ckt in topCkt.items():
-        if cktName in pairs and cktName in match_ckt:
+        if cktName in pairs and cktName in match_ckt and cktName in sym_ans:
             res = []
             ans = []
             for pair in pairs[cktName]:
@@ -425,10 +434,14 @@ def computeAccuracyPair(topCkt, pairs, match_ckt, sym_ans):
         # else:
             # res, ans = _computeAccuracy(cktName, ckt, use_dev, match_ckt, sym_ans)
             # result[cktName] = computeStatistics(res, ans)
-
+        # print(cktName, len(pairs[cktName]))
     return result
 
+def computeAccuracyPair_multi(topCkt, pairs, match_ckt_multi, sym_ans):
+    return
+
 def main():
+    start_time = time.time()
     #####################################################
     # Init graph and training
     #####################################################
@@ -453,7 +466,11 @@ def main():
         max_size = max(sizes)
 
         G_nx_top = G_nx[ckt.name]
-        G_deg = [d for _, d in G_nx_top.in_degree]
+        G_deg = []
+        for i, d in G_nx_top.in_degree:
+            ckt.allDevices[i].in_deg = d
+            G_deg.append(d)
+
         avg_deg = sum(G_deg) / len(G_deg)
         # nx.draw_networkx(G_nx)
         # plt.show()
@@ -469,10 +486,6 @@ def main():
             ckt.max_size
         ))
         G_dgl_dict[cktName] = initFeature(G_nx_top, ckt)
-
-    sfa = Sfa(topCkt["myComparator_v3"])
-    sfa.run()
-    exit(0)
 
     if para.load_model != '':
         model = torch.load(para.load_model)
@@ -493,7 +506,7 @@ def main():
     #####################################################
     # Compute results
     #####################################################
-    sym_ans = init_sym(para)
+    sym_ans = init_sym(para, 'sym')
     s3det_pairs = init_s3det_pairs(para)
 
     # use_dev = {'adc1', 'adc2'}
@@ -506,7 +519,7 @@ def main():
             use_dev.add(cktName)
             # ignore.add(cktName)
     result = dict()
-    for th in list(np.linspace(0.85, 1, 151)):
+    for th in list(np.linspace(1, 1, 1)):
         print('Computing matching with threshold {}'.format(th))
         # match_ckt = computeMatching(topCkt, use_dev, ignore, th, th)
         match_ckt, pairs = computeMatching2(topCkt, use_dev, ignore, th)
@@ -518,40 +531,74 @@ def main():
             # match_ckt = computeMatching(topCkt, use_dev, ignore, th, th)
             # result[(th, th2)] = computeAccuracyS3det(topCkt, s3det_pairs, match_ckt, sym_ans)
             # result[(th, th2)] = computeAccuracy(topCkt, use_dev, match_ckt, sym_ans)
+    print("--- %s seconds ---" % (time.time() - start_time))
 
     # for cktName, ps in s3det_pairs.items():
         # for p in pairs[cktName]:
             # if p not in ps:
                 # print(p)
 
-    with open(para.load_model + '_pg10_res_dev.pickle', 'wb') as f:
-        pickle.dump(result, f)
+    # with open(para.load_model + '_pg10_res_dev_nf.pickle', 'wb') as f:
+        # pickle.dump(result, f)
     for th, res in result.items():
         print('Threshold {}'.format(th))
         for key, val in res.items():
-            print('  {:<35} precision: {:<20} recall: {:<20} accuracy: {:<20} FPR: {:<22} F1: {:<22}'.format(
+            # print('  {:<35} precision: {:<20} recall: {:<20} accuracy: {:<20} FPR: {:<22} F1: {:<22}'.format(
+                # key,
+                # val['precision'],
+                # val['recall'],
+                # val['accuracy'],
+                # val['FPR'],
+                # val['F1']))
+            print('  {:<35} TP: {} FP: {} TN: {} FN: {}'.format(
                 key,
-                val['precision'],
-                val['recall'],
-                val['accuracy'],
-                val['FPR'],
-                val['F1']))
+                val['true_pos'],
+                val['false_pos'],
+                val['true_neg'],
+                val['false_neg']))
         print()
 
     if para.s3det != None:
-        sym_s3det = init_s3det(para)
+        sym_s3det = init_sym(para, 's3det')
         # res_s3det = computeAccuracy(topCkt, use_dev, sym_s3det, sym_ans)
         res_s3det = computeAccuracyPair(topCkt, pairs, sym_s3det, sym_ans)
         print('S3DET')
         for key, val in res_s3det.items():
             # print(val['true_pos'] + val['false_pos'] + val['true_neg'] + val['false_neg'])
-            print('  {:<35} precision: {:<20} recall: {:<20} accuracy: {:<20} FPR: {:<22} F1: {:<22}'.format(
+            # print('  {:<35} precision: {:<20} recall: {:<20} accuracy: {:<20} FPR: {:<22} F1: {:<22}'.format(
+                # key,
+                # val['precision'],
+                # val['recall'],
+                # val['accuracy'],
+                # val['FPR'],
+                # val['F1']))
+            print('  {:<35} TP: {} FP: {} TN: {} FN: {}'.format(
                 key,
-                val['precision'],
-                val['recall'],
-                val['accuracy'],
-                val['FPR'],
-                val['F1']))
+                val['true_pos'],
+                val['false_pos'],
+                val['true_neg'],
+                val['false_neg']))
+        print()
+
+    if para.sfa != None:
+        sym_sfa = init_sym(para, 'sfa')
+        res_sfa = computeAccuracyPair(topCkt, pairs, sym_sfa, sym_ans)
+        print('SFA')
+        for key, val in res_sfa.items():
+            # print(val['true_pos'] + val['false_pos'] + val['true_neg'] + val['false_neg'])
+            # print('  {:<35} precision: {:<20} recall: {:<20} accuracy: {:<20} FPR: {:<22} F1: {:<22}'.format(
+                # key,
+                # val['precision'],
+                # val['recall'],
+                # val['accuracy'],
+                # val['FPR'],
+                # val['F1']))
+            print('  {:<35} TP: {} FP: {} TN: {} FN: {}'.format(
+                key,
+                val['true_pos'],
+                val['false_pos'],
+                val['true_neg'],
+                val['false_neg']))
         print()
 
 

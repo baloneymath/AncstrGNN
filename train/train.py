@@ -28,9 +28,11 @@ def initFeature(G_nx, topCkt):
         f = [0.] * feat_len
         onehot = dev_list.index(dev.type)
         f[onehot] = 1
-        if dev.isNmos() or dev.isPmos(): 
+        if dev.isNmos() or dev.isPmos():
             f[-3] = float(dev.param['l']) / 1e-7 
             f[-2] = float(dev.param['w']) / 1e-7 
+            if 'nfin' in dev.param:
+                f[-2] = f[-2] * float(dev.param['nfin'])
             f[-1] = 1. 
         elif dev.isCap():
             if dev.type == 'crtmom':
@@ -55,7 +57,7 @@ def initFeature(G_nx, topCkt):
                 f[-3] = 0.
                 f[-2] = 0.
                 f[-1] = 1.
-
+        # f.append(float(dev.in_deg) / 10)
         feat.append(f)
         # min_l = min(min_l, f[-3])
         # min_w = min(min_w, f[-2])
@@ -134,7 +136,7 @@ def train(G_dgl_dict, para):
 
     data_loader = DataLoader(node_features, batch_size=n_nodes, shuffle=True)
 
-    for epoch in range(1000):
+    for epoch in range(600):
         for iter, feats in enumerate(data_loader):
             neg_G = construct_negative_graph(G, k)
             pos_score, neg_score = model(G, neg_G, feats)

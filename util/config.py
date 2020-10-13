@@ -10,6 +10,7 @@ def params_setup():
     parser.add_argument('--sym', type=str, nargs='*', default='')
     parser.add_argument('--s3det', type=str, nargs='*', default='')
     parser.add_argument('--s3det_pair', type=str, nargs='*', default='')
+    parser.add_argument('--sfa', type=str, nargs='*', default='')
     parser.add_argument('--mode', type=str, default='train')
     parser.add_argument('--out_dir', type=str, default='./out')
     parser.add_argument('--save_model', type=str, default='')

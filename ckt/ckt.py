@@ -1,4 +1,3 @@
-import ConstGenPy
 import os
 
 clk_set = ["clk", "clksb", "clks_boost", "clkb", "clkbo"]
@@ -52,10 +51,12 @@ class Device(CktObj):
     def __init__(self, name, type, param, level):
         CktObj.__init__(self, name)
         self.type = type
+        self.isDev = True
         self.param = param
         self.level = level
         self.pins = []
         self.idx = -1 # idx in Ckt.devices
+        self.in_deg = 0
         self.feat = None # trained feature
         self.parentCkt = None
         self.name_suffix = name.split('/')[-1]
@@ -80,6 +81,7 @@ class SubCkt(object):
     def __init__(self, name, type, level):
         self.name = name
         self.type = type
+        self.isDev = False
         self.level = level # hierarchy level
         self.idx = -1 # idx in Ckt.subCkts
         self.idx2 = -1 # idx in Ckt.allSubCkts
@@ -175,6 +177,7 @@ class Ckt(object):
     def get_subCkt_by_name(self, name):
         return self.allSubCkts[self.allSubCktName2Id[name]]
 
+'''
 class Sfa(object):
     def __init__(self, ckt):
         self.ckt = ckt
@@ -236,3 +239,4 @@ class Sfa(object):
                 of2.write(self.ckt.name + "\n")
                 of2.write(of.read())
         os.rename ("temp.txt", symfilename)
+'''
